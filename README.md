@@ -145,11 +145,11 @@ Do not change field names without agreement from the whole team.
 
 | Role | Member |
 |---|---|
-| 1. Project lead + Content script | [name] |
-| 2. Background script + Popup | [name] |
-| 3. Backend + Integration | [name] |
-| 4. Dashboard | [name] |
-| 5. UI/UX, QA, Documentation | [name] |
+| 1. Project lead + Content script | Kezia Villegas |
+| 2. Background script + Popup | Francis John Tamayo |
+| 3. Backend + Integration | Aaron Celindro |
+| 4. Dashboard | Francis Conguis |
+| 5. UI/UX, QA, Documentation | Janeah Gasis|
 
 **Course / Subject:** [fill in]
 **School:** [fill in]
