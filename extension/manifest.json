@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Meet Focus Tracker",
+  "version": "1.0",
+  "description": "Tracks when participants leave a Google Meet tab and measures time away.",
+  "permissions": [
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://meet.google.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
