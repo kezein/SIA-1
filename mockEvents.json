@@ -1,0 +1,282 @@
+[
+  {
+    "participant": "Maria Santos",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340000000,
+    "duration": null
+  },
+  {
+    "participant": "Maria Santos",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340025000,
+    "duration": 25000
+  },
+  {
+    "participant": "Maria Santos",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340300000,
+    "duration": null
+  },
+  {
+    "participant": "Maria Santos",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340345000,
+    "duration": 45000
+  },
+  {
+    "participant": "Maria Santos",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340800000,
+    "duration": null
+  },
+  {
+    "participant": "Maria Santos",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340815000,
+    "duration": 15000
+  },
+  {
+    "participant": "John Doe",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340050000,
+    "duration": null
+  },
+  {
+    "participant": "John Doe",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340062000,
+    "duration": 12000
+  },
+  {
+    "participant": "John Doe",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340200000,
+    "duration": null
+  },
+  {
+    "participant": "John Doe",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340260000,
+    "duration": 60000
+  },
+  {
+    "participant": "John Doe",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340500000,
+    "duration": null
+  },
+  {
+    "participant": "John Doe",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340530000,
+    "duration": 30000
+  },
+  {
+    "participant": "John Doe",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340700000,
+    "duration": null
+  },
+  {
+    "participant": "John Doe",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340790000,
+    "duration": 90000
+  },
+  {
+    "participant": "John Doe",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760341100000,
+    "duration": null
+  },
+  {
+    "participant": "John Doe",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760341118000,
+    "duration": 18000
+  },
+  {
+    "participant": "Alex Rivera",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340400000,
+    "duration": null
+  },
+  {
+    "participant": "Chloe Tan",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340150000,
+    "duration": null
+  },
+  {
+    "participant": "Chloe Tan",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340160000,
+    "duration": 10000
+  },
+  {
+    "participant": "Chloe Tan",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340600000,
+    "duration": null
+  },
+  {
+    "participant": "Chloe Tan",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340620000,
+    "duration": 20000
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340100000,
+    "duration": null
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340115000,
+    "duration": 15000
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340350000,
+    "duration": null
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340375000,
+    "duration": 25000
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340720000,
+    "duration": null
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340755000,
+    "duration": 35000
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "abc-defg-hij",
+    "type": "left",
+    "timestamp": 1760340900000,
+    "duration": null
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "abc-defg-hij",
+    "type": "returned",
+    "timestamp": 1760340940000,
+    "duration": 40000
+  },
+  {
+    "participant": "Maria Santos",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "left",
+    "timestamp": 1760350000000,
+    "duration": null
+  },
+  {
+    "participant": "Maria Santos",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "returned",
+    "timestamp": 1760350018000,
+    "duration": 18000
+  },
+  {
+    "participant": "Alex Rivera",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "left",
+    "timestamp": 1760350100000,
+    "duration": null
+  },
+  {
+    "participant": "Alex Rivera",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "returned",
+    "timestamp": 1760350130000,
+    "duration": 30000
+  },
+  {
+    "participant": "Alex Rivera",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "left",
+    "timestamp": 1760350400000,
+    "duration": null
+  },
+  {
+    "participant": "Alex Rivera",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "returned",
+    "timestamp": 1760350445000,
+    "duration": 45000
+  },
+  {
+    "participant": "Chloe Tan",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "left",
+    "timestamp": 1760350200000,
+    "duration": null
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "left",
+    "timestamp": 1760350250000,
+    "duration": null
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "returned",
+    "timestamp": 1760350272000,
+    "duration": 22000
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "left",
+    "timestamp": 1760350500000,
+    "duration": null
+  },
+  {
+    "participant": "David Kim",
+    "meetingCode": "xyz-uvwx-rst",
+    "type": "returned",
+    "timestamp": 1760350531000,
+    "duration": 31000
+  }
+]

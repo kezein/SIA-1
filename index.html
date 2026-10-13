@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Meet Focus Tracker Teacher Dashboard (Role 4) - Real-time student engagement, tab switch monitoring, and meeting focus analytics for Google Meet.">
+  <title>Teacher Dashboard - Meet Focus Tracker</title>
+  
+  <!-- Modern Typography (Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Dashboard Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="dashboard-layout">
+    
+    <!-- Top Navigation Header -->
+    <header class="top-navbar" id="top-navbar">
+      <div class="brand-section">
+        <div class="brand-icon" aria-hidden="true">
+          <!-- Focus / Target Icon -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="6"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>
+            Meet Focus Tracker
+            <span class="role-badge" id="role-badge">Role 4: Dashboard</span>
+          </h1>
+          <p class="brand-tagline">Teacher Real-Time Engagement & Tab Switch Monitor</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Teacher Login Placeholder (Connected to Role 3 on Wednesday) -->
+        <button class="auth-btn" id="teacher-login-btn" type="button" aria-haspopup="dialog">
+          <span class="auth-status-indicator" id="auth-status-dot"></span>
+          <span id="auth-btn-label">Teacher Login</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Meeting Code Control Bar -->
+    <section class="control-bar" id="control-bar" aria-label="Meeting Selector">
+      <div class="control-bar-inner">
+        <div class="input-group-wrapper">
+          <label for="meeting-code-input" class="input-label">Meeting Code</label>
+          <div class="code-input-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M13.8 12H3"></path>
+            </svg>
+            <input 
+              type="text" 
+              id="meeting-code-input" 
+              class="code-input" 
+              placeholder="e.g. abc-defg-hij" 
+              value="abc-defg-hij"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+          <button class="btn-primary" id="load-meeting-btn" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            Load
+          </button>
+        </div>
+
+        <!-- Quick Switch Preset Buttons -->
+        <div class="quick-codes" id="quick-codes-container">
+          <span>Quick Select:</span>
+          <button type="button" class="chip-btn" id="chip-code-abc" data-code="abc-defg-hij">abc-defg-hij</button>
+          <button type="button" class="chip-btn" id="chip-code-xyz" data-code="xyz-uvwx-rst">xyz-uvwx-rst</button>
+          <button type="button" class="chip-btn" id="chip-code-empty" data-code="non-existent">empty-test</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Metrics Overview (KPIs) -->
+    <section class="metrics-grid" id="metrics-grid" aria-label="Key Performance Indicators">
+      <div class="metric-card accent-indigo">
+        <div class="metric-header">
+          <span class="metric-title">Tracked Students</span>
+          <div class="metric-icon-box">👥</div>
+        </div>
+        <div class="metric-value" id="kpi-students-count">0</div>
+        <div class="metric-subtitle" id="kpi-students-sub">Active in meeting</div>
+      </div>
+
+      <div class="metric-card accent-cyan">
+        <div class="metric-header">
+          <span class="metric-title">Total Tab Switches</span>
+          <div class="metric-icon-box">⚡</div>
+        </div>
+        <div class="metric-value" id="kpi-switches-count">0</div>
+        <div class="metric-subtitle">Left Google Meet tab</div>
+      </div>
+
+      <div class="metric-card accent-amber">
+        <div class="metric-header">
+          <span class="metric-title">Total Time Away</span>
+          <div class="metric-icon-box">⏱️</div>
+        </div>
+        <div class="metric-value" id="kpi-total-away">00:00</div>
+        <div class="metric-subtitle">Cumulative across class</div>
+      </div>
+
+      <div class="metric-card accent-emerald">
+        <div class="metric-header">
+          <span class="metric-title">Max Single Away</span>
+          <div class="metric-icon-box">📈</div>
+        </div>
+        <div class="metric-value" id="kpi-longest-away">00:00</div>
+        <div class="metric-subtitle">Longest individual switch</div>
+      </div>
+    </section>
+
+    <!-- Visual Analytics: Chart + Insights -->
+    <section class="analytics-section" id="analytics-section">
+      <!-- Main Chart Card -->
+      <div class="card-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span id="chart-title-text">Tab Switches per Participant</span>
+            <span class="panel-badge" id="chart-badge">Chart.js</span>
+          </div>
+          <div class="chart-toggle-group">
+            <button type="button" class="chart-toggle-btn active" id="toggle-view-switches">Switches</button>
+            <button type="button" class="chart-toggle-btn" id="toggle-view-duration">Time Away</button>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="participantsChart" aria-label="Bar chart showing tab switches per participant"></canvas>
+        </div>
+      </div>
+
+      <!-- Real-time Insights / Privacy Note -->
+      <div class="card-panel">
+        <div class="panel-header">
+          <div class="panel-title">Focus Health Summary</div>
+          <span class="panel-badge" id="insights-badge">Live</span>
+        </div>
+        <div class="insights-list" id="insights-list">
+          <div class="insight-item">
+            <span class="insight-icon">🛡️</span>
+            <div class="insight-body">
+              <h4>Zero Content Tracking</h4>
+              <p>Per Role 1 & Role 5 privacy contract, only "left" & "returned" timestamps are received. No URL, screen, or browser history.</p>
+            </div>
+          </div>
+          <div class="insight-item">
+            <span class="insight-icon">🔍</span>
+            <div class="insight-body">
+              <h4 id="insight-top-student-title">Most Distracted</h4>
+              <p id="insight-top-student-text">Loading participant analytics...</p>
+            </div>
+          </div>
+          <div class="insight-item">
+            <span class="insight-icon">📡</span>
+            <div class="insight-body">
+              <h4>Data Architecture</h4>
+              <p>Centralized in <code>data.js</code> via <code>getEvents()</code>. Ready for Wednesday's Supabase/Firebase connection.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Participant Details Table Section -->
+    <section class="table-section" id="table-section">
+      <div class="table-toolbar">
+        <div class="table-title-area">
+          <h2>Student Activity Roster</h2>
+          <p id="table-subtitle">Showing focus data for meeting: <span id="current-meeting-code-display" style="font-family: monospace; color: #93c5fd;">abc-defg-hij</span></p>
+        </div>
+
+        <div class="table-controls">
+          <!-- Search Filter -->
+          <div class="search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="table-search-input" class="search-input" placeholder="Search student...">
+          </div>
+
+          <!-- Sort Select -->
+          <select id="table-sort-select" class="select-box" aria-label="Sort table">
+            <option value="switches-desc">Sort by: Switches (High to Low)</option>
+            <option value="switches-asc">Sort by: Switches (Low to High)</option>
+            <option value="totalAway-desc">Sort by: Total Away (Longest first)</option>
+            <option value="longestAway-desc">Sort by: Longest Single Away</option>
+            <option value="name-asc">Sort by: Student Name (A-Z)</option>
+          </select>
+
+          <!-- Export CSV -->
+          <button type="button" class="btn-secondary" id="export-csv-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Table View -->
+      <div class="table-responsive" id="table-container">
+        <table class="data-table" id="participants-table">
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="name">Participant</th>
+              <th>Current Status</th>
+              <th class="sortable" data-sort="switches">Tab Switches</th>
+              <th class="sortable" data-sort="totalAway">Total Time Away (mm:ss)</th>
+              <th class="sortable" data-sort="longestAway">Longest Away</th>
+              <th>Inspect</th>
+            </tr>
+          </thead>
+          <tbody id="participants-tbody">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+
+        <!-- Friendly Empty State View (Shown when no events found) -->
+        <div class="empty-state" id="empty-state-view" style="display: none;">
+          <div class="empty-state-icon">📭</div>
+          <h3 id="empty-state-title">No Events Found</h3>
+          <p id="empty-state-desc">There are no focus tracking records for this meeting code yet. Ensure students have the extension active and have joined the meeting.</p>
+          <button type="button" class="btn-primary" id="empty-state-reset-btn">Load Default Meeting (abc-defg-hij)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+      <div>Meet Focus Tracker &copy; 2026 &bull; SIA Team Project</div>
+      <div class="footer-tags">
+        <span class="footer-tag">Role 1: Content Script</span>
+        <span class="footer-tag">Role 2: Background + Popup</span>
+        <span class="footer-tag">Role 3: Backend (Supabase/Firebase)</span>
+        <span class="footer-tag" style="border-color: #6366f1; color: #a5b4fc;">Role 4: Dashboard (Active)</span>
+        <span class="footer-tag">Role 5: Consent + QA</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Modal: Teacher Login Placeholder (Form connecting to Role 3 later) -->
+  <div class="modal-overlay" id="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="login-modal-title">Teacher Authentication</h3>
+        <button type="button" class="modal-close-btn" id="login-modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+      <form id="teacher-login-form">
+        <div class="form-field">
+          <label class="form-label" for="teacher-email">Teacher Email</label>
+          <input type="email" id="teacher-email" class="form-input" placeholder="teacher@school.edu" value="teacher@university.edu" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="teacher-password">Password</label>
+          <input type="password" id="teacher-password" class="form-input" placeholder="••••••••" value="demo-teacher-2026" required>
+          <div class="form-helper">Role 3 Integration Note: Security rules allow only authenticated teachers to READ events.</div>
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;" id="login-submit-btn">
+          Sign In (Demo Auth)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Inspect Participant Events Timeline -->
+  <div class="modal-overlay" id="inspect-modal" role="dialog" aria-modal="true" aria-labelledby="inspect-modal-title">
+    <div class="modal-card" style="max-width: 540px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="inspect-modal-title">Participant Events</h3>
+          <p id="inspect-modal-subtitle" style="font-size: 0.8rem; color: var(--text-muted);"></p>
+        </div>
+        <button type="button" class="modal-close-btn" id="inspect-modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="timeline-container" id="inspect-timeline-list">
+        <!-- Rendered timeline items -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Feedback -->
+  <div class="toast-notice" id="toast-notice" role="status" aria-live="polite"></div>
+
+  <!-- Application Logic Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
