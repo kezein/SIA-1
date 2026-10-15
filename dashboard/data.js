@@ -119,6 +119,10 @@ async function signInWithGoogle() {
     throw new Error("Supabase is not configured yet. Please enter your Project URL and Anon Key in settings.");
   }
 
+  if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+    throw new Error("Google Sign-In requires running on a local web server (e.g. http://localhost:5500 via VS Code Live Server). Google OAuth cannot redirect to a local file:// URL.");
+  }
+
   const redirectUrl = window.location.href.split('#')[0];
   const { data, error } = await client.auth.signInWithOAuth({
     provider: 'google',
