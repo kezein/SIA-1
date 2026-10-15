@@ -1,10 +1,10 @@
 /**
- * Meet Focus Tracker - Data Layer (Role 4)
+ * Meet Focus Tracker - Data Layer (Role 4: Dashboard)
  * 
- * All data access is centralized in this file.
- * Currently reads from mockEvents.json (with fallback for file:// protocol).
- * On Integration Day (Wednesday), Role 3 and Role 4 will update ONLY
- * getEvents(meetingCode) to query the real database (Firebase or Supabase).
+ * Centralized data access layer.
+ * Integrates directly with Supabase (schema.sql / Role 3 - Aaron Celindro)
+ * Supports Google / Gmail Teacher Authentication & Supabase Realtime.
+ * Seamlessly falls back to mockEvents.json for offline testing.
  */
 
 // Fallback dataset in case fetch is blocked by browser file:// CORS restrictions
@@ -52,9 +52,147 @@ const FALLBACK_MOCK_EVENTS = [
 ];
 
 let cachedAllEvents = null;
+let supabaseClient = null;
+let currentRealtimeChannel = null;
 
 /**
- * Loads all events either by fetching mockEvents.json or using the fallback data.
+ * Retrieves configured Supabase credentials from localStorage or CONFIG object.
+ */
+function getSupabaseConfig() {
+  const storedUrl = typeof localStorage !== 'undefined' ? localStorage.getItem('supabase_url') : null;
+  const storedKey = typeof localStorage !== 'undefined' ? localStorage.getItem('supabase_anon_key') : null;
+
+  const configUrl = (typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_URL) ? CONFIG.SUPABASE_URL : '';
+  const configKey = (typeof CONFIG !== 'undefined' && CONFIG.SUPABASE_ANON_KEY) ? CONFIG.SUPABASE_ANON_KEY : '';
+
+  const url = (storedUrl || configUrl || '').trim();
+  const key = (storedKey || configKey || '').trim();
+
+  const isConfigured = Boolean(url && key && !url.includes('your-project-id') && !key.includes('your-anon-public-key'));
+  return { url, key, isConfigured };
+}
+
+/**
+ * Initializes the Supabase client instance using supabase-js.
+ */
+function initSupabase() {
+  if (supabaseClient) return supabaseClient;
+
+  const { url, key, isConfigured } = getSupabaseConfig();
+
+  if (isConfigured && typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+    try {
+      supabaseClient = window.supabase.createClient(url, key, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true
+        }
+      });
+      console.log('[Dashboard] Supabase client initialized:', url);
+    } catch (err) {
+      console.warn('[Dashboard] Could not initialize Supabase client:', err);
+    }
+  }
+
+  return supabaseClient;
+}
+
+/**
+ * Saves project credentials to localStorage and reinitializes client.
+ */
+function saveSupabaseSettings(url, key) {
+  if (typeof localStorage !== 'undefined') {
+    if (url) localStorage.setItem('supabase_url', url.trim());
+    if (key) localStorage.setItem('supabase_anon_key', key.trim());
+  }
+  supabaseClient = null;
+  return initSupabase();
+}
+
+/**
+ * Initiates Google OAuth (Gmail) sign in via Supabase Auth.
+ */
+async function signInWithGoogle() {
+  const client = initSupabase();
+  if (!client) {
+    throw new Error("Supabase is not configured yet. Please enter your Project URL and Anon Key in settings.");
+  }
+
+  const redirectUrl = window.location.href.split('#')[0];
+  const { data, error } = await client.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectUrl
+    }
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Initiates email/password sign in via Supabase Auth.
+ */
+async function signInWithEmail(email, password) {
+  const client = initSupabase();
+  if (!client) {
+    throw new Error("Supabase is not configured yet. Please enter your Project URL and Anon Key in settings.");
+  }
+
+  const { data, error } = await client.auth.signInWithPassword({
+    email: email.trim(),
+    password: password
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Signs out the teacher from Supabase session.
+ */
+async function signOut() {
+  const client = initSupabase();
+  if (client) {
+    await client.auth.signOut();
+  }
+}
+
+/**
+ * Gets the current active Supabase user session.
+ */
+async function getCurrentUser() {
+  const client = initSupabase();
+  if (!client) return null;
+
+  try {
+    const { data: { session }, error } = await client.auth.getSession();
+    if (error || !session) return null;
+    return session.user;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Listens for auth state changes (login, logout, token refresh).
+ */
+function onAuthStateChange(callback) {
+  const client = initSupabase();
+  if (!client) return null;
+
+  const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
+    if (typeof callback === 'function') {
+      callback(event, session);
+    }
+  });
+
+  return subscription;
+}
+
+/**
+ * Loads mock events fallback.
  */
 async function loadAllEvents() {
   if (cachedAllEvents) return cachedAllEvents;
@@ -67,7 +205,7 @@ async function loadAllEvents() {
     cachedAllEvents = await response.json();
     return cachedAllEvents;
   } catch (err) {
-    console.warn("Could not fetch mockEvents.json via HTTP (likely local file:// origin). Using built-in fallback data.", err);
+    console.warn("Could not fetch mockEvents.json (likely local file:// origin). Using built-in fallback data.", err);
     cachedAllEvents = FALLBACK_MOCK_EVENTS;
     return cachedAllEvents;
   }
@@ -76,32 +214,73 @@ async function loadAllEvents() {
 /**
  * Main data access function required by Role 4.
  * Fetches events matching the specified meetingCode.
- * 
- * TODO (Role 3 & Role 4 on Wednesday):
- * Replace this implementation with Supabase / Firebase query:
- *   const { data, error } = await supabase
- *     .from('events')
- *     .select('*')
- *     .eq('meetingCode', meetingCode);
+ * Queries Supabase table `focus_events` live if available, with mock fallback.
  * 
  * @param {string} meetingCode - The Google Meet code (e.g. 'abc-defg-hij')
  * @returns {Promise<Array>} Array of event objects matching the meeting code
  */
 async function getEvents(meetingCode) {
   if (!meetingCode) return [];
-  
-  const normalizedCode = meetingCode.trim().toLowerCase();
-  const allEvents = await loadAllEvents();
+  const normalizedCode = meetingCode.trim();
 
+  const client = initSupabase();
+
+  if (client) {
+    try {
+      // Query focus_events table designed by Aaron Celindro in supabase/schema.sql
+      const { data, error } = await client
+        .from('focus_events')
+        .select('*')
+        .ilike('meetingCode', normalizedCode)
+        .order('timestamp', { ascending: true });
+
+      if (error) {
+        console.warn('[Dashboard] Supabase query notice:', error.message);
+      } else if (Array.isArray(data) && data.length > 0) {
+        console.log(`[Dashboard] Fetched ${data.length} live event(s) from Supabase for "${normalizedCode}"`);
+        return data;
+      } else if (Array.isArray(data)) {
+        // Query succeeded and returned 0 events for this meeting code
+        // If it's one of the demo codes, fall back to mock data for demonstration
+        if (normalizedCode.toLowerCase() === 'abc-defg-hij' || normalizedCode.toLowerCase() === 'xyz-uvwx-rst') {
+          console.log('[Dashboard] No live events in Supabase for demo code; displaying mock demonstration.');
+        } else {
+          return [];
+        }
+      }
+    } catch (err) {
+      console.warn('[Dashboard] Supabase live fetch failed, utilizing mock fallback:', err);
+    }
+  }
+
+  // Fallback to mock dataset
+  const allEvents = await loadAllEvents();
   return allEvents.filter(event => 
-    event.meetingCode && event.meetingCode.trim().toLowerCase() === normalizedCode
+    event.meetingCode && event.meetingCode.trim().toLowerCase() === normalizedCode.toLowerCase()
   );
 }
 
 /**
- * Returns a list of all distinct meeting codes found in the events dataset.
+ * Returns a list of distinct meeting codes from Supabase or mock data.
  */
 async function getAvailableMeetingCodes() {
+  const client = initSupabase();
+
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('focus_events')
+        .select('meetingCode');
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const codes = Array.from(new Set(data.map(r => r.meetingCode).filter(Boolean)));
+        if (codes.length > 0) return codes;
+      }
+    } catch (err) {
+      console.warn('[Dashboard] Error querying meeting codes from Supabase:', err);
+    }
+  }
+
   const allEvents = await loadAllEvents();
   const codesSet = new Set();
   allEvents.forEach(e => {
@@ -111,14 +290,53 @@ async function getAvailableMeetingCodes() {
 }
 
 /**
+ * Subscribes to real-time events inserted into Supabase `focus_events`.
+ * Live updates the teacher's dashboard without refreshing!
+ */
+function subscribeToRealtime(meetingCode, onEventCallback) {
+  const client = initSupabase();
+  if (!client || !meetingCode) return null;
+
+  if (currentRealtimeChannel) {
+    try {
+      client.removeChannel(currentRealtimeChannel);
+    } catch (e) {}
+    currentRealtimeChannel = null;
+  }
+
+  try {
+    currentRealtimeChannel = client
+      .channel(`live-meet-${meetingCode}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'focus_events' },
+        (payload) => {
+          const newEv = payload.new;
+          if (newEv && newEv.meetingCode && newEv.meetingCode.trim().toLowerCase() === meetingCode.trim().toLowerCase()) {
+            console.log('[Dashboard] Live tab switch event received via Supabase Realtime:', newEv);
+            if (typeof onEventCallback === 'function') {
+              onEventCallback(newEv);
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`[Dashboard] Supabase Realtime channel status: ${status}`);
+      });
+
+    return currentRealtimeChannel;
+  } catch (err) {
+    console.warn('[Dashboard] Realtime subscription error:', err);
+    return null;
+  }
+}
+
+/**
  * Computes analytics per participant for a list of events:
  * - switches: count of "left" events
  * - totalAway: sum of duration on "returned" events
  * - longestAway: maximum single duration on "returned" events
  * - status: 'In Meet' vs 'Currently Away' based on last event
- * 
- * @param {Array} events - Event list for a specific meeting
- * @returns {Array} List of participant summaries
  */
 function computeParticipantStats(events) {
   if (!Array.isArray(events) || events.length === 0) {
@@ -126,9 +344,7 @@ function computeParticipantStats(events) {
   }
 
   const map = new Map();
-
-  // Sort events chronologically
-  const sorted = [...events].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  const sorted = [...events].sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0));
 
   sorted.forEach(ev => {
     const name = ev.participant ? ev.participant.trim() : "Unknown Student";
@@ -151,7 +367,7 @@ function computeParticipantStats(events) {
     if (ev.type === "left") {
       item.switches += 1;
     } else if (ev.type === "returned") {
-      const dur = typeof ev.duration === "number" ? ev.duration : 0;
+      const dur = typeof ev.duration === "number" ? ev.duration : (Number(ev.duration) || 0);
       item.totalAway += dur;
       if (dur > item.longestAway) {
         item.longestAway = dur;
@@ -161,7 +377,6 @@ function computeParticipantStats(events) {
   });
 
   return Array.from(map.values()).map(item => {
-    // Edge case check: if student's last recorded action was "left", they haven't returned yet
     const isCurrentlyAway = item.lastEvent && item.lastEvent.type === "left";
     
     return {
@@ -181,14 +396,11 @@ function computeParticipantStats(events) {
 
 /**
  * Formats milliseconds into "mm:ss" format (or "hh:mm:ss" if >= 1 hour).
- * 
- * @param {number} ms - Milliseconds
- * @returns {string} Formatted duration string
  */
 function formatDuration(ms) {
   if (!ms || isNaN(ms) || ms < 0) return "00:00";
   
-  const totalSeconds = Math.round(ms / 1000);
+  const totalSeconds = Math.round(Number(ms) / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
@@ -208,6 +420,15 @@ if (typeof window !== "undefined") {
     getAvailableMeetingCodes,
     computeParticipantStats,
     formatDuration,
-    loadAllEvents
+    loadAllEvents,
+    initSupabase,
+    getSupabaseConfig,
+    saveSupabaseSettings,
+    signInWithGoogle,
+    signInWithEmail,
+    signOut,
+    getCurrentUser,
+    onAuthStateChange,
+    subscribeToRealtime
   };
 }

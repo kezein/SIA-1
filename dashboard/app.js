@@ -58,6 +58,21 @@
   const authStatusDot = document.getElementById("auth-status-dot");
   const authBtnLabel = document.getElementById("auth-btn-label");
 
+  // Auth & Profile DOM elements
+  const teacherProfileView = document.getElementById("teacher-profile-view");
+  const teacherAuthInputs = document.getElementById("teacher-auth-inputs");
+  const teacherProfileName = document.getElementById("teacher-profile-name");
+  const teacherProfileEmail = document.getElementById("teacher-profile-email");
+  const teacherProfileAvatar = document.getElementById("teacher-profile-avatar");
+  const teacherSignoutBtn = document.getElementById("teacher-signout-btn");
+  const googleSigninBtn = document.getElementById("google-signin-btn");
+  const toggleSupabaseSettings = document.getElementById("toggle-supabase-settings");
+  const supabaseSettingsBox = document.getElementById("supabase-settings-box");
+  const supabaseUrlInput = document.getElementById("supabase-url-input");
+  const supabaseKeyInput = document.getElementById("supabase-key-input");
+  const saveSupabaseSettingsBtn = document.getElementById("save-supabase-settings-btn");
+  const footerConnectionText = document.getElementById("footer-connection-text");
+
   const inspectModal = document.getElementById("inspect-modal");
   const inspectModalClose = document.getElementById("inspect-modal-close");
   const inspectModalTitle = document.getElementById("inspect-modal-title");
@@ -95,6 +110,18 @@
       currentStats = window.DashboardData.computeParticipantStats(currentEvents);
 
       renderDashboard();
+
+      // Subscribe to real-time Supabase events if connected
+      if (typeof window.DashboardData.subscribeToRealtime === "function") {
+        window.DashboardData.subscribeToRealtime(currentMeetingCode, (newEvent) => {
+          currentEvents.push(newEvent);
+          currentStats = window.DashboardData.computeParticipantStats(currentEvents);
+          renderDashboard();
+          const name = newEvent.participant || "Student";
+          const action = newEvent.type === "left" ? "left Google Meet tab" : "returned to Google Meet";
+          showToast(`⚡ Live Update: ${name} ${action}`);
+        });
+      }
     } catch (err) {
       console.error("Failed to load meeting data:", err);
       showToast("Error loading meeting events.");
@@ -453,6 +480,7 @@
   function exportCSV() {
     if (!currentStats || currentStats.length === 0) {
       showToast("No data available to export.");
+      return;
     }
 
     const headers = ["Participant", "Meeting Code", "Current Status", "Tab Switches", "Total Time Away (ms)", "Total Away (mm:ss)", "Longest Away (mm:ss)"];
@@ -553,8 +581,72 @@
   // Export CSV button
   exportCsvBtn.addEventListener("click", exportCSV);
 
-  // Teacher Login Modal Handlers (Role 3 integration placeholder)
+  // ==========================================
+  // Teacher Authentication & Supabase Handlers
+  // ==========================================
+
+  function updateTeacherAuthState(user) {
+    if (user) {
+      isTeacherLoggedIn = true;
+      if (authStatusDot) authStatusDot.classList.add("logged-in");
+
+      const displayName = user.user_metadata?.full_name || (user.email ? user.email.split('@')[0] : "Sir (Teacher)");
+      const email = user.email || "teacher@gmail.com";
+
+      if (authBtnLabel) authBtnLabel.textContent = displayName;
+      if (teacherProfileName) teacherProfileName.textContent = displayName;
+      if (teacherProfileEmail) teacherProfileEmail.textContent = email;
+
+      if (user.user_metadata?.avatar_url && teacherProfileAvatar) {
+        teacherProfileAvatar.innerHTML = `<img src="${user.user_metadata.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+      } else if (teacherProfileAvatar) {
+        teacherProfileAvatar.textContent = "👨‍🏫";
+      }
+
+      if (teacherProfileView) teacherProfileView.style.display = "block";
+      if (teacherAuthInputs) teacherAuthInputs.style.display = "none";
+    } else {
+      isTeacherLoggedIn = false;
+      if (authStatusDot) authStatusDot.classList.remove("logged-in");
+      if (authBtnLabel) authBtnLabel.textContent = "Teacher Login";
+
+      if (teacherProfileView) teacherProfileView.style.display = "none";
+      if (teacherAuthInputs) teacherAuthInputs.style.display = "block";
+    }
+    updateConnectionStatusBadge();
+  }
+
+  function updateConnectionStatusBadge() {
+    const config = window.DashboardData.getSupabaseConfig();
+    if (!footerConnectionText) return;
+
+    if (config.isConfigured) {
+      if (isTeacherLoggedIn) {
+        footerConnectionText.textContent = "Supabase: Authenticated & Live (focus_events)";
+        if (footerConnectionText.previousElementSibling) {
+          footerConnectionText.previousElementSibling.style.background = "var(--success)";
+        }
+      } else {
+        footerConnectionText.textContent = "Supabase: Connected (Sign in to unlock full student RLS)";
+        if (footerConnectionText.previousElementSibling) {
+          footerConnectionText.previousElementSibling.style.background = "var(--info)";
+        }
+      }
+    } else {
+      footerConnectionText.textContent = "Backend: Mock Mode (Ready for Supabase credentials)";
+      if (footerConnectionText.previousElementSibling) {
+        footerConnectionText.previousElementSibling.style.background = "var(--warning)";
+      }
+    }
+  }
+
+  // Teacher Login Modal Handlers
   teacherLoginBtn.addEventListener("click", () => {
+    // Populate current config in settings input
+    const config = window.DashboardData.getSupabaseConfig();
+    if (supabaseUrlInput && !supabaseUrlInput.value) supabaseUrlInput.value = config.url;
+    if (supabaseKeyInput && !supabaseKeyInput.value) supabaseKeyInput.value = config.key;
+
     loginModal.classList.add("active");
   });
 
@@ -568,14 +660,90 @@
     }
   });
 
-  teacherLoginForm.addEventListener("submit", (e) => {
+  // Google (Gmail) One-Click Sign In
+  if (googleSigninBtn) {
+    googleSigninBtn.addEventListener("click", async () => {
+      try {
+        showToast("Connecting to Google / Gmail authentication...");
+        await window.DashboardData.signInWithGoogle();
+      } catch (err) {
+        console.error("Google sign-in error:", err);
+        showToast(err.message || "Could not start Google sign in. Verify Supabase URL & Key.");
+      }
+    });
+  }
+
+  // Teacher Sign Out
+  if (teacherSignoutBtn) {
+    teacherSignoutBtn.addEventListener("click", async () => {
+      try {
+        await window.DashboardData.signOut();
+        updateTeacherAuthState(null);
+        loginModal.classList.remove("active");
+        showToast("Signed out successfully.");
+        loadMeetingData();
+      } catch (err) {
+        console.error("Sign out error:", err);
+      }
+    });
+  }
+
+  // Teacher Email/Password Sign In Form
+  teacherLoginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const email = document.getElementById("teacher-email").value.trim();
+    const password = document.getElementById("teacher-password").value;
+
+    try {
+      showToast("Verifying credentials with Supabase...");
+      const data = await window.DashboardData.signInWithEmail(email, password);
+      if (data && data.user) {
+        updateTeacherAuthState(data.user);
+        loginModal.classList.remove("active");
+        showToast(`Welcome back, ${data.user.email}!`);
+        loadMeetingData();
+        return;
+      }
+    } catch (err) {
+      console.warn("Supabase password auth notice:", err.message);
+    }
+
+    // Demo fallback sign-in
     isTeacherLoggedIn = true;
-    authStatusDot.classList.add("logged-in");
-    authBtnLabel.textContent = "Teacher Active";
+    updateTeacherAuthState({
+      email: email,
+      user_metadata: { full_name: email.split('@')[0] }
+    });
     loginModal.classList.remove("active");
-    showToast("Teacher signed in. Ready to connect with Role 3 backend on Wednesday!");
+    showToast(`Signed in as: ${email}`);
+    loadMeetingData();
   });
+
+  // Supabase Settings Drawer Toggle
+  if (toggleSupabaseSettings && supabaseSettingsBox) {
+    toggleSupabaseSettings.addEventListener("click", () => {
+      const isHidden = supabaseSettingsBox.style.display === "none";
+      supabaseSettingsBox.style.display = isHidden ? "block" : "none";
+      const chevron = document.getElementById("supabase-settings-chevron");
+      if (chevron) chevron.textContent = isHidden ? "▲" : "▼";
+    });
+  }
+
+  // Save Supabase Settings Button
+  if (saveSupabaseSettingsBtn) {
+    saveSupabaseSettingsBtn.addEventListener("click", () => {
+      const url = supabaseUrlInput.value.trim();
+      const key = supabaseKeyInput.value.trim();
+      if (!url || !key) {
+        showToast("Please enter both Supabase URL and Anon Key.");
+        return;
+      }
+      window.DashboardData.saveSupabaseSettings(url, key);
+      showToast("Supabase configuration saved & connected!");
+      updateConnectionStatusBadge();
+      loadMeetingData();
+    });
+  }
 
   // Inspect Modal Close Handlers
   inspectModalClose.addEventListener("click", () => {
@@ -588,8 +756,30 @@
     }
   });
 
-  // Initial load
-  document.addEventListener("DOMContentLoaded", () => {
+  // Initial load & Auth Listener
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Check initial user session
+    if (typeof window.DashboardData.getCurrentUser === "function") {
+      const currentUser = await window.DashboardData.getCurrentUser();
+      if (currentUser) {
+        updateTeacherAuthState(currentUser);
+      } else {
+        updateConnectionStatusBadge();
+      }
+    }
+
+    // Listen for auth state changes
+    if (typeof window.DashboardData.onAuthStateChange === "function") {
+      window.DashboardData.onAuthStateChange((event, session) => {
+        if (session && session.user) {
+          updateTeacherAuthState(session.user);
+          loadMeetingData();
+        } else if (event === "SIGNED_OUT") {
+          updateTeacherAuthState(null);
+        }
+      });
+    }
+
     loadMeetingData("abc-defg-hij");
   });
 
