@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meet Focus Tracker - Participant Consent</title>
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --primary-hover: #1557b0;
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-main: #202124;
+      --text-secondary: #5f6368;
+      --border: #dadce0;
+      --success-bg: #e6f4ea;
+      --success-border: #34a853;
+      --success-text: #137333;
+      --danger-bg: #fce8e6;
+      --danger-border: #ea4335;
+      --danger-text: #c5221f;
+      --info-bg: #e8f0fe;
+      --info-border: #1a73e8;
+      --info-text: #174ea6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 32px 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .consent-card {
+      background: var(--card-bg);
+      max-width: 680px;
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      padding: 36px 32px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .icon-badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background-color: var(--info-bg);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .lead-text {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 600px) {
+      .privacy-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .section-box {
+      border-radius: 8px;
+      padding: 16px 18px;
+      font-size: 14px;
+    }
+
+    .section-box.tracked {
+      background-color: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+
+    .section-box.not-tracked {
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+    }
+
+    .section-title {
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .section-box.tracked .section-title {
+      color: #166534;
+    }
+
+    .section-box.not-tracked .section-title {
+      color: #991b1b;
+    }
+
+    ul.check-list {
+      list-style: none;
+    }
+
+    ul.check-list li {
+      margin-bottom: 8px;
+      position: relative;
+      padding-left: 22px;
+      font-size: 13.5px;
+      line-height: 1.45;
+    }
+
+    ul.check-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-box.tracked ul.check-list li::before {
+      content: "✔";
+      position: absolute;
+      left: 0;
+      color: var(--success-text);
+      font-weight: bold;
+    }
+
+    .section-box.not-tracked ul.check-list li::before {
+      content: "✖";
+      position: absolute;
+      left: 0;
+      color: var(--danger-text);
+      font-weight: bold;
+    }
+
+    .info-callout {
+      background-color: var(--info-bg);
+      border-left: 4px solid var(--info-border);
+      padding: 14px 16px;
+      border-radius: 4px;
+      margin-bottom: 24px;
+      font-size: 13.5px;
+      color: var(--info-text);
+    }
+
+    .info-callout p {
+      margin-bottom: 6px;
+    }
+
+    .info-callout p:last-child {
+      margin-bottom: 0;
+    }
+
+    .info-callout strong {
+      color: #0d47a1;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 22px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .btn-agree {
+      background-color: var(--primary);
+      color: #ffffff;
+      border: 1px solid var(--primary);
+    }
+
+    .btn-agree:hover {
+      background-color: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+
+    .btn-decline {
+      background-color: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-decline:hover {
+      background-color: #f1f3f4;
+      color: var(--text-main);
+    }
+
+    .status-banner {
+      display: none;
+      margin-top: 20px;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .status-banner.success {
+      background-color: var(--success-bg);
+      border: 1px solid var(--success-border);
+      color: var(--success-text);
+    }
+
+    .status-banner.warning {
+      background-color: var(--danger-bg);
+      border: 1px solid var(--danger-border);
+      color: var(--danger-text);
+    }
+  </style>
+</head>
+<body>
+  <div class="consent-card">
+    <div class="header">
+      <div class="icon-badge">🛡️</div>
+      <div>
+        <h1>Participant Consent</h1>
+        <p style="font-size: 13px; color: var(--text-secondary);">Meet Focus Tracker</p>
+      </div>
+    </div>
+
+    <p class="lead-text">
+      Welcome! Before tracking starts, we want you to know exactly what this extension does, what it never does, and how your privacy is protected. Please read the information below before deciding.
+    </p>
+
+    <div class="privacy-grid">
+      <!-- What is Tracked -->
+      <div class="section-box tracked">
+        <div class="section-title">
+          <span>What We Track</span>
+        </div>
+        <ul class="check-list">
+          <li><strong>Leaving Google Meet:</strong> Only that you switched away from your Meet tab or minimized the window.</li>
+          <li><strong>When:</strong> The timestamp when you left and when you returned.</li>
+          <li><strong>How long:</strong> The total time (seconds/minutes) you spent away from Meet.</li>
+          <li><strong>Your Details:</strong> The name and meeting code you provided in the popup.</li>
+        </ul>
+      </div>
+
+      <!-- What is NOT Tracked -->
+      <div class="section-box not-tracked">
+        <div class="section-title">
+          <span>What We NEVER Track</span>
+        </div>
+        <ul class="check-list">
+          <li><strong>No tab titles or URLs:</strong> We never know what other websites you visit.</li>
+          <li><strong>No other apps:</strong> We cannot see any other desktop programs or files.</li>
+          <li><strong>No screen content:</strong> We never capture screenshots or keystrokes.</li>
+          <li><strong>No audio or video:</strong> We never record your microphone, webcam, or speakers.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="info-callout">
+      <p><strong>🌐 Where does it run?</strong> Exclusively on <code>meet.google.com</code>. It is completely inactive on any other website.</p>
+      <p><strong>👀 Who can see this data?</strong> Only your teacher or instructor, who views your focus count and away time on the teacher dashboard for this meeting.</p>
+    </div>
+
+    <div class="actions">
+      <button id="decline-btn" class="btn-decline" type="button">Decline</button>
+      <button id="agree-btn" class="btn-agree" type="button">I Agree</button>
+    </div>
+
+    <div id="status-message" class="status-banner" role="status" aria-live="polite"></div>
+  </div>
+
+  <script src="consent.js"></script>
+</body>
+</html>
