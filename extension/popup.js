@@ -21,6 +21,7 @@ const participantInput = document.getElementById('participant-name');
 const meetingCodeInput = document.getElementById('meeting-code');
 const saveDetailsBtn = document.getElementById('save-details-btn');
 const cancelDetailsBtn = document.getElementById('cancel-details-btn');
+const editTrackingNotice = document.getElementById('edit-tracking-notice');
 const detailsSummary = document.getElementById('details-summary');
 const summaryName = document.getElementById('summary-name');
 const summaryCode = document.getElementById('summary-code');
@@ -208,21 +209,21 @@ async function handleSaveDetails() {
   currentSavedName = name;
   currentSavedCode = code;
 
+  editTrackingNotice.classList.add('hidden');
   setUnlockedState(true, name, code);
 }
 
 /**
- * Switches the details section into edit mode and dims the stats section.
+ * Switches the details section into edit mode.
+ * Stats remain fully visible so the student understands tracking is still live.
  */
 function handleEditDetails() {
   detailsSummary.classList.add('hidden');
   editDetailsBtn.classList.add('hidden');
   detailsInputs.classList.remove('hidden');
   cancelDetailsBtn.classList.remove('hidden');
+  editTrackingNotice.classList.remove('hidden');
   saveDetailsBtn.textContent = 'Save Changes';
-
-  // Dim stats section to clearly signal configuration in progress
-  statsSection.classList.add('dimmed');
 
   validateInputs();
   participantInput.focus();
@@ -239,12 +240,11 @@ function handleCancelDetails() {
   // Restore views
   detailsInputs.classList.add('hidden');
   cancelDetailsBtn.classList.add('hidden');
+  editTrackingNotice.classList.add('hidden');
   detailsSummary.classList.remove('hidden');
   editDetailsBtn.classList.remove('hidden');
   saveDetailsBtn.textContent = 'Save Details';
 
-  // Restore stats section
-  statsSection.classList.remove('dimmed');
   validateInputs();
 }
 

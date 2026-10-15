@@ -12,14 +12,6 @@ body {
   border: 1px dashed #cbd5e1 !important;
 }
 
-/* Dimmed Stats during Details Edit */
-#stats-section.dimmed,
-.stats-section.dimmed {
-  opacity: 0.35 !important;
-  pointer-events: none !important;
-  filter: grayscale(0.7) !important;
-  transition: opacity 0.25s ease, filter 0.25s ease;
-}
 
 /* Pulsing Live Indicator */
 .live-indicator {
