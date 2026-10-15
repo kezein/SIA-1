@@ -18,3 +18,5 @@ Thumbs.db
 *.sublime-workspace
 *.swp
 *.swo
+extension/config.js
+dashboard/config.js
