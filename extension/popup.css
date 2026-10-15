@@ -1,7 +1,7 @@
 /* Custom Popup Overrides and Enhancements (complements Bootstrap 5) */
 
 body {
-  width: 320px;
+  width: 400px;
   user-select: none;
 }
 
@@ -9,6 +9,14 @@ body {
 .stats-section.locked {
   background-color: #f8fafc !important;
   border: 1px dashed #cbd5e1 !important;
+}
+
+/* Dimmed Stats during Details Edit */
+.stats-section.dimmed {
+  opacity: 0.45;
+  pointer-events: none;
+  filter: grayscale(0.4);
+  transition: opacity 0.2s ease, filter 0.2s ease;
 }
 
 /* Pulsing Live Indicator */

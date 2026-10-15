@@ -3,9 +3,10 @@
  * 
  * Responsibilities:
  * - Load participant name and meeting code; require both before unlocking focus stats
- * - Provide a clear "Save Details" and "✏️ Edit" toggle so users can always edit their info
- * - Display live focus statistics (switches count & time away) only after setup is complete
- * - Provide a safe "Reset Focus Stats" button with 2-step confirmation to avoid confusion
+ * - Smart parsing/cleaning of meeting code (handles pasted full URLs like meet.google.com/xxx-yyyy-zzz)
+ * - Provide a clear "Save Changes" and "Cancel" toggle in edit mode (dims stats while editing)
+ * - Auto-reset stats when a different meeting code is entered to avoid data contamination
+ * - Provide an explicit "Cancel" and "Yes, Reset" confirmation dialog for resetting stats
  * - Keep live updates in sync with chrome.storage.local
  */
 
@@ -19,6 +20,7 @@ const detailsInputs = document.getElementById('details-inputs');
 const participantInput = document.getElementById('participant-name');
 const meetingCodeInput = document.getElementById('meeting-code');
 const saveDetailsBtn = document.getElementById('save-details-btn');
+const cancelDetailsBtn = document.getElementById('cancel-details-btn');
 const detailsSummary = document.getElementById('details-summary');
 const summaryName = document.getElementById('summary-name');
 const summaryCode = document.getElementById('summary-code');
@@ -29,10 +31,42 @@ const statsLockedMessage = document.getElementById('stats-locked-message');
 const statsContent = document.getElementById('stats-content');
 const switchesDisplay = document.getElementById('switches-count');
 const totalAwayDisplay = document.getElementById('total-away');
+
+// Reset action elements
+const resetInitialView = document.getElementById('reset-initial-view');
+const resetConfirmView = document.getElementById('reset-confirm-view');
 const resetBtn = document.getElementById('reset-btn');
+const resetCancelBtn = document.getElementById('reset-cancel-btn');
+const resetConfirmBtn = document.getElementById('reset-confirm-btn');
 
 // State tracking
-let resetConfirmTimeout = null;
+let currentSavedName = '';
+let currentSavedCode = '';
+
+/**
+ * Extracts and cleans a Google Meet code from raw input or pasted URLs.
+ * Examples:
+ *   "https://meet.google.com/abc-defg-hij?authuser=0" -> "abc-defg-hij"
+ *   "ABC-DEFG-HIJ" -> "abc-defg-hij"
+ * @param {string} raw - Raw input string
+ * @returns {string} Cleaned meeting code
+ */
+function cleanMeetingCode(raw) {
+  if (!raw) return '';
+  let val = raw.trim();
+
+  // If full Meet URL was pasted, extract the code segment
+  const urlMatch = val.match(/meet\.google\.com\/([a-zA-Z0-9-]+)/i);
+  if (urlMatch && urlMatch[1]) {
+    val = urlMatch[1];
+  }
+
+  // Strip query parameters, hashes, and leading/trailing slashes
+  val = val.split('?')[0].split('#')[0].replace(/^\/+|\/+$/g, '');
+
+  // Keep only alphanumeric characters and hyphens, converted to lowercase
+  return val.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
+}
 
 /**
  * Formats a duration in milliseconds into "mm:ss" string format.
@@ -87,7 +121,7 @@ function updateTotalAwayDisplay(totalAway) {
  */
 function validateInputs() {
   const name = participantInput.value.trim();
-  const code = meetingCodeInput.value.trim();
+  const code = cleanMeetingCode(meetingCodeInput.value);
   const isValid = name.length > 0 && code.length > 0;
   saveDetailsBtn.disabled = !isValid;
   return isValid;
@@ -103,6 +137,7 @@ function setUnlockedState(isUnlocked, name = '', code = '') {
   if (isUnlocked) {
     // Show active stats and hide lock screen
     statsSection.classList.remove('locked');
+    statsSection.classList.remove('dimmed');
     statsLockedMessage.classList.add('hidden');
     statsContent.classList.remove('hidden');
 
@@ -110,6 +145,7 @@ function setUnlockedState(isUnlocked, name = '', code = '') {
     detailsInputs.classList.add('hidden');
     detailsSummary.classList.remove('hidden');
     editDetailsBtn.classList.remove('hidden');
+    cancelDetailsBtn.classList.add('hidden');
 
     // Populate summary values
     summaryName.textContent = name;
@@ -121,6 +157,7 @@ function setUnlockedState(isUnlocked, name = '', code = '') {
   } else {
     // Show locked placeholder and hide stats
     statsSection.classList.add('locked');
+    statsSection.classList.remove('dimmed');
     statsLockedMessage.classList.remove('hidden');
     statsContent.classList.add('hidden');
 
@@ -128,6 +165,7 @@ function setUnlockedState(isUnlocked, name = '', code = '') {
     detailsInputs.classList.remove('hidden');
     detailsSummary.classList.add('hidden');
     editDetailsBtn.classList.add('hidden');
+    cancelDetailsBtn.classList.add('hidden');
 
     // Update session status badge
     sessionBadge.textContent = 'Setup';
@@ -137,87 +175,121 @@ function setUnlockedState(isUnlocked, name = '', code = '') {
 
 /**
  * Saves participant name and meeting code to storage and unlocks stats.
+ * If the meeting code changed, resets stats so counters start fresh for the new meeting.
  */
 async function handleSaveDetails() {
   const name = participantInput.value.trim();
-  const code = meetingCodeInput.value.trim();
+  const code = cleanMeetingCode(meetingCodeInput.value);
 
   if (!name || !code) {
     return;
   }
 
-  // Persist both values in chrome.storage.local
-  await chrome.storage.local.set({
+  // Update input with cleaned code
+  meetingCodeInput.value = code;
+
+  // Prepare updates for chrome.storage.local
+  const updates = {
     participant: name,
     meetingCode: code
-  });
+  };
+
+  // If meeting code changed to a different session, reset stats to avoid mixing data
+  if (currentSavedCode && currentSavedCode.toLowerCase() !== code.toLowerCase()) {
+    updates.switches = 0;
+    updates.totalAway = 0;
+    updates.lastLeaveTime = null;
+    updateSwitchesDisplay(0);
+    updateTotalAwayDisplay(0);
+  }
+
+  await chrome.storage.local.set(updates);
+
+  currentSavedName = name;
+  currentSavedCode = code;
 
   setUnlockedState(true, name, code);
 }
 
 /**
- * Switches the details section back to editable mode so the user can change their name or code.
+ * Switches the details section into edit mode and dims the stats section.
  */
 function handleEditDetails() {
   detailsSummary.classList.add('hidden');
   editDetailsBtn.classList.add('hidden');
   detailsInputs.classList.remove('hidden');
+  cancelDetailsBtn.classList.remove('hidden');
+  saveDetailsBtn.textContent = 'Save Changes';
+
+  // Dim stats section to clearly signal configuration in progress
+  statsSection.classList.add('dimmed');
 
   validateInputs();
   participantInput.focus();
 }
 
 /**
- * Resets the confirmation state of the Reset button.
+ * Cancels editing and reverts input fields back to their saved values.
  */
-function resetConfirmationState() {
-  if (resetConfirmTimeout) {
-    clearTimeout(resetConfirmTimeout);
-    resetConfirmTimeout = null;
-  }
-  resetBtn.textContent = 'Reset Focus Stats';
-  resetBtn.classList.remove('confirming', 'done');
+function handleCancelDetails() {
+  // Revert inputs
+  participantInput.value = currentSavedName;
+  meetingCodeInput.value = currentSavedCode;
+
+  // Restore views
+  detailsInputs.classList.add('hidden');
+  cancelDetailsBtn.classList.add('hidden');
+  detailsSummary.classList.remove('hidden');
+  editDetailsBtn.classList.remove('hidden');
+  saveDetailsBtn.textContent = 'Save Details';
+
+  // Restore stats section
+  statsSection.classList.remove('dimmed');
+  validateInputs();
 }
 
 /**
- * Handles the 2-step confirmation and execution for resetting stats.
- * This guarantees users never confuse resetting stats with editing their details.
+ * Opens the Reset Confirmation view.
  */
-async function handleResetStats() {
-  if (!resetBtn.classList.contains('confirming')) {
-    // First click: Request confirmation
-    resetBtn.classList.add('confirming');
-    resetBtn.textContent = '⚠️ Confirm Reset?';
+function handleOpenResetConfirm() {
+  resetInitialView.classList.add('hidden');
+  resetConfirmView.classList.remove('hidden');
+}
 
-    // Auto-revert after 3.5 seconds if not clicked again
-    resetConfirmTimeout = setTimeout(() => {
-      resetConfirmationState();
-    }, 3500);
-  } else {
-    // Second click: Confirmed reset
-    if (resetConfirmTimeout) {
-      clearTimeout(resetConfirmTimeout);
-      resetConfirmTimeout = null;
-    }
+/**
+ * Cancels the Reset action and returns to the initial view.
+ */
+function handleCancelReset() {
+  resetConfirmView.classList.add('hidden');
+  resetInitialView.classList.remove('hidden');
+}
 
-    // Reset switches and away time only; keeps participant and meetingCode safe
-    await chrome.storage.local.set({
-      switches: 0,
-      totalAway: 0,
-      lastLeaveTime: null
-    });
+/**
+ * Confirms resetting stats to 0.
+ */
+async function handleConfirmReset() {
+  // Reset switches and away time only; keeps participant and meetingCode safe
+  await chrome.storage.local.set({
+    switches: 0,
+    totalAway: 0,
+    lastLeaveTime: null
+  });
 
-    updateSwitchesDisplay(0);
-    updateTotalAwayDisplay(0);
+  updateSwitchesDisplay(0);
+  updateTotalAwayDisplay(0);
 
-    resetBtn.classList.remove('confirming');
-    resetBtn.classList.add('done');
-    resetBtn.textContent = '✓ Stats Reset!';
+  // Return to initial button view with brief success feedback
+  resetConfirmView.classList.add('hidden');
+  resetInitialView.classList.remove('hidden');
 
-    setTimeout(() => {
-      resetConfirmationState();
-    }, 1200);
-  }
+  const originalText = resetBtn.textContent;
+  resetBtn.textContent = '✓ Stats Reset to 0!';
+  resetBtn.disabled = true;
+
+  setTimeout(() => {
+    resetBtn.textContent = originalText;
+    resetBtn.disabled = false;
+  }, 1400);
 }
 
 /**
@@ -236,7 +308,10 @@ async function initializePopup() {
   updateConsentDisplay(data.consentGiven);
 
   const name = (data.participant || '').trim();
-  const code = (data.meetingCode || '').trim();
+  const code = cleanMeetingCode(data.meetingCode || '');
+
+  currentSavedName = name;
+  currentSavedCode = code;
 
   // Populate inputs
   participantInput.value = name;
@@ -257,7 +332,18 @@ async function initializePopup() {
 
 // Input event listeners for validation
 participantInput.addEventListener('input', validateInputs);
-meetingCodeInput.addEventListener('input', validateInputs);
+
+meetingCodeInput.addEventListener('input', () => {
+  validateInputs();
+});
+
+// Auto-clean pasted meeting code/URL immediately
+meetingCodeInput.addEventListener('paste', (e) => {
+  setTimeout(() => {
+    meetingCodeInput.value = cleanMeetingCode(meetingCodeInput.value);
+    validateInputs();
+  }, 0);
+});
 
 // Allow pressing 'Enter' in either input to save details immediately
 participantInput.addEventListener('keydown', (e) => {
@@ -272,14 +358,15 @@ meetingCodeInput.addEventListener('keydown', (e) => {
   }
 });
 
-// Save Details button click
+// Session Details actions
 saveDetailsBtn.addEventListener('click', handleSaveDetails);
-
-// Edit Details button click
+cancelDetailsBtn.addEventListener('click', handleCancelDetails);
 editDetailsBtn.addEventListener('click', handleEditDetails);
 
-// Reset Stats button click
-resetBtn.addEventListener('click', handleResetStats);
+// Reset Focus Stats actions (Cancel & Confirm flow)
+resetBtn.addEventListener('click', handleOpenResetConfirm);
+resetCancelBtn.addEventListener('click', handleCancelReset);
+resetConfirmBtn.addEventListener('click', handleConfirmReset);
 
 /**
  * Listen for changes in chrome.storage.local and update the popup live.
@@ -305,6 +392,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   // Sync participant name if updated externally (only if not actively typing)
   if (changes.participant !== undefined && document.activeElement !== participantInput) {
     const newName = changes.participant.newValue || '';
+    currentSavedName = newName;
     participantInput.value = newName;
     summaryName.textContent = newName;
     validateInputs();
@@ -312,7 +400,8 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
   // Sync meeting code if updated externally (e.g. detected by content script on Meet)
   if (changes.meetingCode !== undefined && document.activeElement !== meetingCodeInput) {
-    const newCode = changes.meetingCode.newValue || '';
+    const newCode = cleanMeetingCode(changes.meetingCode.newValue || '');
+    currentSavedCode = newCode;
     meetingCodeInput.value = newCode;
     summaryCode.textContent = newCode;
     validateInputs();

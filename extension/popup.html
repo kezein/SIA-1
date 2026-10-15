@@ -53,16 +53,21 @@
             placeholder="e.g. abc-defg-hij" autocomplete="off" />
         </div>
 
-        <button type="button" id="save-details-btn" class="btn btn-primary btn-sm w-100 fw-semibold" disabled>
-          Save Details
-        </button>
+        <div class="d-flex gap-2">
+          <button type="button" id="cancel-details-btn" class="btn btn-outline-secondary btn-sm flex-fill fw-semibold hidden">
+            Cancel
+          </button>
+          <button type="button" id="save-details-btn" class="btn btn-primary btn-sm flex-fill fw-semibold" disabled>
+            Save Details
+          </button>
+        </div>
       </div>
 
       <!-- Saved Details Summary View -->
       <div id="details-summary" class="details-summary p-2 rounded bg-light border hidden">
         <div class="d-flex justify-content-between align-items-center mb-1 small">
           <span class="text-secondary">Participant</span>
-          <span id="summary-name" class="fw-semibold text-dark text-truncate" style="max-width: 150px;">-</span>
+          <span id="summary-name" class="fw-semibold text-dark text-truncate" style="max-width: 200px;">-</span>
         </div>
         <div class="d-flex justify-content-between align-items-center small">
           <span class="text-secondary">Meeting Code</span>
@@ -108,13 +113,30 @@
           </div>
         </div>
 
-        <!-- Reset Action with explicit helper explanation -->
+        <!-- Reset Action with Cancel & Confirm Flow -->
         <div class="border-top pt-2">
-          <button type="button" id="reset-btn" class="btn btn-outline-danger btn-sm w-100 fw-semibold">
-            Reset Focus Stats
-          </button>
-          <div class="text-center text-secondary mt-1" style="font-size: 10px;">
-            Resets switch count & away time to 0. Keeps your name and code.
+          <!-- Initial Button View -->
+          <div id="reset-initial-view">
+            <button type="button" id="reset-btn" class="btn btn-outline-danger btn-sm w-100 fw-semibold">
+              Reset Focus Stats
+            </button>
+            <div class="text-center text-secondary mt-1" style="font-size: 10px;">
+              Resets switch count & away time to 0. Keeps your name and code.
+            </div>
+          </div>
+
+          <!-- Confirm / Cancel Prompt View -->
+          <div id="reset-confirm-view" class="p-2 rounded bg-light border border-danger-subtle hidden text-center">
+            <div class="fw-bold text-danger small mb-1">Reset stats to 0?</div>
+            <div class="text-secondary mb-2" style="font-size: 11px;">This will zero your switches and time away.</div>
+            <div class="d-flex gap-2">
+              <button type="button" id="reset-cancel-btn" class="btn btn-outline-secondary btn-sm flex-fill fw-semibold">
+                Cancel
+              </button>
+              <button type="button" id="reset-confirm-btn" class="btn btn-danger btn-sm flex-fill fw-semibold">
+                Yes, Reset
+              </button>
+            </div>
           </div>
         </div>
       </div>
