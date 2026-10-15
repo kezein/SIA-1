@@ -1,0 +1,84 @@
+/* Custom Popup Overrides and Enhancements (complements Bootstrap 5) */
+
+body {
+  width: 440px;
+  user-select: none;
+}
+
+/* Locked Card State */
+#stats-section.locked,
+.stats-section.locked {
+  background-color: #f8fafc !important;
+  border: 1px dashed #cbd5e1 !important;
+}
+
+
+/* Pulsing Live Indicator */
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #198754;
+}
+
+.live-indicator .dot {
+  width: 7px;
+  height: 7px;
+  background-color: #198754;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.2);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.4);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 5px rgba(25, 135, 84, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+  }
+}
+
+/* Reset Confirmation Button States */
+#reset-btn.confirming {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #000;
+}
+
+#reset-btn.done {
+  background-color: #198754;
+  border-color: #198754;
+  color: #fff;
+}
+
+/* Consent Warning Button */
+#open-consent-btn,
+.btn-consent {
+  background-color: #b45309;
+  border-color: #92400e;
+  color: #ffffff;
+  font-size: 11px;
+}
+
+#open-consent-btn:hover,
+.btn-consent:hover {
+  background-color: #92400e;
+  border-color: #78350f;
+  color: #ffffff;
+}
+
+/* Visibility Helper */
+.hidden {
+  display: none !important;
+}
