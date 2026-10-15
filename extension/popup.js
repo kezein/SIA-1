@@ -12,6 +12,7 @@
 
 // DOM Element References
 const consentBanner = document.getElementById('consent-banner');
+const openConsentBtn = document.getElementById('open-consent-btn');
 const sessionBadge = document.getElementById('session-badge');
 
 // Details section elements
@@ -92,6 +93,7 @@ function formatDuration(ms) {
  * @param {boolean} consentGiven - Whether consent has been granted
  */
 function updateConsentDisplay(consentGiven) {
+  if (!consentBanner) return;
   if (consentGiven === true) {
     consentBanner.classList.add('hidden');
   } else {
@@ -357,6 +359,13 @@ meetingCodeInput.addEventListener('keydown', (e) => {
     handleSaveDetails();
   }
 });
+
+// Open consent.html in a new tab when the consent button is clicked
+if (openConsentBtn) {
+  openConsentBtn.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL("consent.html") });
+  });
+}
 
 // Session Details actions
 saveDetailsBtn.addEventListener('click', handleSaveDetails);

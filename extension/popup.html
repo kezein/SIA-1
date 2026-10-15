@@ -24,8 +24,11 @@
   <!-- Consent Notice: Displayed if consentGiven is not true -->
   <div id="consent-banner" class="alert alert-warning py-2 px-3 mb-3 small" role="alert">
     <div class="fw-bold mb-1">⚠️ Consent Required</div>
-    <p class="mb-0" style="font-size: 11px;">Please accept the consent screen before tracking starts. Focus tracking is
+    <p class="mb-2" style="font-size: 11px;">Please accept the consent screen before tracking starts. Focus tracking is
       paused until consent is provided.</p>
+    <button type="button" id="open-consent-btn" class="btn btn-warning btn-sm w-100 fw-semibold btn-consent">
+      Open Consent Screen
+    </button>
   </div>
 
   <!-- Section 1: Participant and Meeting Code Setup -->

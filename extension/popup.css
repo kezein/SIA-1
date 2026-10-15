@@ -62,6 +62,22 @@ body {
   color: #fff;
 }
 
+/* Consent Warning Button */
+#open-consent-btn,
+.btn-consent {
+  background-color: #b45309;
+  border-color: #92400e;
+  color: #ffffff;
+  font-size: 11px;
+}
+
+#open-consent-btn:hover,
+.btn-consent:hover {
+  background-color: #92400e;
+  border-color: #78350f;
+  color: #ffffff;
+}
+
 /* Visibility Helper */
 .hidden {
   display: none !important;
