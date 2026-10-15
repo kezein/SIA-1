@@ -6,17 +6,19 @@ body {
 }
 
 /* Locked Card State */
+#stats-section.locked,
 .stats-section.locked {
   background-color: #f8fafc !important;
   border: 1px dashed #cbd5e1 !important;
 }
 
 /* Dimmed Stats during Details Edit */
+#stats-section.dimmed,
 .stats-section.dimmed {
-  opacity: 0.45;
-  pointer-events: none;
-  filter: grayscale(0.4);
-  transition: opacity 0.2s ease, filter 0.2s ease;
+  opacity: 0.35 !important;
+  pointer-events: none !important;
+  filter: grayscale(0.7) !important;
+  transition: opacity 0.25s ease, filter 0.25s ease;
 }
 
 /* Pulsing Live Indicator */
