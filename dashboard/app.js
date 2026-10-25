@@ -94,15 +94,77 @@
   }
 
   /**
+   * Extracts and cleans meeting codes from raw input or pasted Google Meet URLs.
+   */
+  function cleanMeetingCode(raw) {
+    if (!raw) return '';
+    let val = String(raw).trim();
+    const urlMatch = val.match(/meet\.google\.com\/([a-zA-Z0-9-]+)/i);
+    if (urlMatch && urlMatch[1]) {
+      val = urlMatch[1];
+    }
+    val = val.split('?')[0].split('#')[0].replace(/^\/+|\/+$/g, '');
+    return val.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
+  }
+
+  /**
+   * Determines the initial meeting code with precedence:
+   * 1. URL search param (?meeting=... or ?code=...)
+   * 2. localStorage saved meeting code
+   * 3. Fallback demo code ("abc-defg-hij")
+   */
+  function getInitialMeetingCode() {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCode = urlParams.get("meeting") || urlParams.get("code");
+      if (urlCode && cleanMeetingCode(urlCode)) {
+        return cleanMeetingCode(urlCode);
+      }
+    } catch (e) {
+      console.warn("Could not read URL meeting param:", e);
+    }
+
+    try {
+      const savedCode = localStorage.getItem("last_meeting_code");
+      if (savedCode && cleanMeetingCode(savedCode)) {
+        return cleanMeetingCode(savedCode);
+      }
+    } catch (e) {
+      console.warn("Could not read saved meeting code from localStorage:", e);
+    }
+
+    return "abc-defg-hij";
+  }
+
+  /**
    * Loads meeting events using data.js
    */
   async function loadMeetingData(code) {
     if (!code) code = meetingCodeInput.value.trim();
+    code = cleanMeetingCode(code);
     if (!code) return;
 
     currentMeetingCode = code;
     meetingCodeInput.value = code;
     currentMeetingCodeDisplay.textContent = code;
+
+    // Persist chosen meeting code to localStorage
+    try {
+      localStorage.setItem("last_meeting_code", code);
+    } catch (e) {
+      console.warn("Could not save meeting code to localStorage:", e);
+    }
+
+    // Persist chosen meeting code to URL query parameter without full page reload
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("meeting") !== code) {
+        url.searchParams.set("meeting", code);
+        window.history.replaceState({ meeting: code }, "", url.toString());
+      }
+    } catch (e) {
+      console.warn("Could not update URL parameter:", e);
+    }
 
     try {
       // Call Role 4 centralized data function
@@ -780,7 +842,16 @@
       });
     }
 
-    loadMeetingData("abc-defg-hij");
+    const initialCode = getInitialMeetingCode();
+    loadMeetingData(initialCode);
+  });
+
+  // Handle browser back and forward navigation
+  window.addEventListener("popstate", () => {
+    const code = getInitialMeetingCode();
+    if (code && code !== currentMeetingCode) {
+      loadMeetingData(code);
+    }
   });
 
 })();
