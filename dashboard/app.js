@@ -17,6 +17,7 @@
   let currentSort = "switches-desc";
   let searchFilter = "";
   let isTeacherLoggedIn = false;
+  let pollingTimer = null;
 
   // DOM Elements
   const meetingCodeInput = document.getElementById("meeting-code-input");
@@ -173,6 +174,9 @@
 
       renderDashboard();
 
+      // Refresh dynamic meeting chips from database
+      updateAvailableMeetingChips();
+
       // Subscribe to real-time Supabase events if connected
       if (typeof window.DashboardData.subscribeToRealtime === "function") {
         window.DashboardData.subscribeToRealtime(currentMeetingCode, (newEvent) => {
@@ -184,9 +188,50 @@
           showToast(`⚡ Live Update: ${name} ${action}`);
         });
       }
+
+      // Live sync fallback: Periodic polling to ensure data never falls out of sync
+      if (pollingTimer) clearInterval(pollingTimer);
+      pollingTimer = setInterval(async () => {
+        try {
+          const freshEvents = await window.DashboardData.getEvents(currentMeetingCode);
+          if (Array.isArray(freshEvents) && freshEvents.length !== currentEvents.length) {
+            currentEvents = freshEvents;
+            currentStats = window.DashboardData.computeParticipantStats(currentEvents);
+            renderDashboard();
+          }
+        } catch (e) {
+          // Silently ignore background poll errors
+        }
+      }, 4000);
     } catch (err) {
       console.error("Failed to load meeting data:", err);
       showToast("Error loading meeting events.");
+    }
+  }
+
+  /**
+   * Dynamically loads all active meeting codes found in the database into the quick chips
+   */
+  async function updateAvailableMeetingChips() {
+    const container = document.getElementById("quick-code-chips");
+    if (!container || typeof window.DashboardData.getAvailableMeetingCodes !== "function") return;
+    try {
+      const codes = await window.DashboardData.getAvailableMeetingCodes();
+      if (Array.isArray(codes) && codes.length > 0) {
+        container.innerHTML = "";
+        codes.forEach(code => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = `chip-btn ${code === currentMeetingCode ? "active" : ""}`;
+          btn.setAttribute("data-code", code);
+          const isDemo = code === "abc-defg-hij" || code === "xyz-uvwx-rst";
+          btn.textContent = `${code}${isDemo ? " (Demo)" : " (Live)"}`;
+          btn.addEventListener("click", () => loadMeetingData(code));
+          container.appendChild(btn);
+        });
+      }
+    } catch (e) {
+      console.warn("Could not update meeting chips:", e);
     }
   }
 
@@ -842,6 +887,7 @@
       });
     }
 
+    updateAvailableMeetingChips();
     const initialCode = getInitialMeetingCode();
     loadMeetingData(initialCode);
   });

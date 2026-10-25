@@ -6,6 +6,9 @@
   "permissions": [
     "storage"
   ],
+  "host_permissions": [
+    "https://*.supabase.co/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },

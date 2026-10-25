@@ -17,6 +17,10 @@ let leaveTimer = null;
 function getMeetingCode() {
   // Remove leading slashes and take the first path segment
   const path = window.location.pathname.replace(/^\/+/, '').split('/')[0];
+  const systemPaths = ['landing', 'home', 'meet', 'new', 'lookup', ''];
+  if (systemPaths.includes((path || '').toLowerCase())) {
+    return '';
+  }
   return path || '';
 }
 
