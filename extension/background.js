@@ -23,6 +23,19 @@ async function sendToBackend(event) {
     }
 }
 
+// Track whether extension popup is currently open to avoid false "left" events
+let isPopupOpen = false;
+let lastPopupCloseTime = 0;
+
+chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === 'popup') {
+        isPopupOpen = true;
+        port.onDisconnect.addListener(() => {
+            isPopupOpen = false;
+            lastPopupCloseTime = Date.now();
+        });
+    }
+});
 
 /**
  * Handles incoming focus events ("left" or "returned") from content.js.
@@ -43,6 +56,18 @@ async function handleFocusEvent(message) {
     // 2. Gatekeeper: Do not count any events unless consent has been granted
     if (data.consentGiven !== true) {
         console.log('[Meet Focus Tracker] Event ignored: Consent has not been granted yet.');
+        return;
+    }
+
+    // 3. Ignore "left" event if user is just viewing the extension popup (or closed it < 1.5s ago)
+    if (message.type === 'left' && (isPopupOpen || (Date.now() - lastPopupCloseTime < 1500))) {
+        console.log('[Meet Focus Tracker] Event ignored: User is viewing extension popup.');
+        return;
+    }
+
+    // 4. Ignore "returned" event if participant was never marked away
+    if (message.type === 'returned' && !data.lastLeaveTime) {
+        console.log('[Meet Focus Tracker] Returned event ignored: Participant was not away.');
         return;
     }
 

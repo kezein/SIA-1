@@ -10,6 +10,16 @@
  * - Keep live updates in sync with chrome.storage.local
  */
 
+// Maintain port connection so background script knows the popup is open
+// and does not count opening the extension as a focus leave/switch event.
+try {
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.connect) {
+    chrome.runtime.connect({ name: 'popup' });
+  }
+} catch (e) {
+  console.warn('[Meet Focus Tracker] Port connection notice:', e);
+}
+
 // DOM Element References
 const consentBanner = document.getElementById('consent-banner');
 const openConsentBtn = document.getElementById('open-consent-btn');
