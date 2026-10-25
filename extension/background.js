@@ -10,6 +10,7 @@
  * - Only count events when consentGiven === true
  * - Call sendToBackend(event) inside try/catch so tracking never breaks
  */
+importScripts('config.js', 'supabaseClient.js');
 
 /**
  * Sends the formatted event to the backend database.
@@ -17,8 +18,11 @@
  * @param {Object} event - The shared event object
  */
 async function sendToBackend(event) {
-    // TODO: Connect with Role 3 backend API / database on Wednesday.
+    if (typeof SupabaseClient !== 'undefined' && SupabaseClient.sendFocusEvent) {
+        return await SupabaseClient.sendFocusEvent(event);
+    }
 }
+
 
 /**
  * Handles incoming focus events ("left" or "returned") from content.js.
@@ -146,4 +150,4 @@ chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === 'install') {
         chrome.tabs.create({ url: chrome.runtime.getURL("consent.html") });
     }
-});
+});
