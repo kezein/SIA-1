@@ -185,7 +185,7 @@
           renderDashboard();
           const name = newEvent.participant || "Student";
           const action = newEvent.type === "left" ? "left Google Meet tab" : "returned to Google Meet";
-          showToast(`⚡ Live Update: ${name} ${action}`);
+          showToast(`Live Update: ${name} ${action}`);
         });
       }
 
@@ -707,7 +707,7 @@
       if (user.user_metadata?.avatar_url && teacherProfileAvatar) {
         teacherProfileAvatar.innerHTML = `<img src="${user.user_metadata.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
       } else if (teacherProfileAvatar) {
-        teacherProfileAvatar.textContent = "👨‍🏫";
+        teacherProfileAvatar.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
       }
 
       if (teacherProfileView) teacherProfileView.style.display = "block";

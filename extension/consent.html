@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meet Focus Tracker - Participant Consent</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
     :root {
       --primary: #1a73e8;
@@ -253,7 +254,12 @@
 <body>
   <div class="consent-card">
     <div class="header">
-      <div class="icon-badge">🛡️</div>
+      <div class="icon-badge">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <polyline points="9 12 11 14 15 10"></polyline>
+        </svg>
+      </div>
       <div>
         <h1>Participant Consent</h1>
         <p style="font-size: 13px; color: var(--text-secondary);">Meet Focus Tracker</p>
@@ -293,8 +299,21 @@
     </div>
 
     <div class="info-callout">
-      <p><strong>🌐 Where does it run?</strong> Exclusively on <code>meet.google.com</code>. It is completely inactive on any other website.</p>
-      <p><strong>👀 Who can see this data?</strong> Only your teacher or instructor, who views your focus count and away time on the teacher dashboard for this meeting.</p>
+      <p style="display: flex; align-items: flex-start; gap: 8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 3px;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span><strong>Where does it run?</strong> Exclusively on <code>meet.google.com</code>. It is completely inactive on any other website.</span>
+      </p>
+      <p style="display: flex; align-items: flex-start; gap: 8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 3px;">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+        <span><strong>Who can see this data?</strong> Only your teacher or instructor, who views your focus count and away time on the teacher dashboard for this meeting.</span>
+      </p>
     </div>
 
     <div class="actions">

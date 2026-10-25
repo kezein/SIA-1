@@ -6,6 +6,9 @@
   <meta name="description" content="Meet Focus Tracker Teacher Dashboard (Role 4) - Real-time student engagement, tab switch monitoring, and meeting focus analytics for Google Meet.">
   <title>Teacher Dashboard - Meet Focus Tracker</title>
   
+  <!-- Modern Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  
   <!-- Modern Typography (Google Fonts) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -91,7 +94,14 @@
       <div class="metric-card accent-indigo">
         <div class="metric-header">
           <span class="metric-title">Tracked Students</span>
-          <div class="metric-icon-box">👥</div>
+          <div class="metric-icon-box" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
         </div>
         <div class="metric-value" id="kpi-students-count">0</div>
         <div class="metric-subtitle" id="kpi-students-sub">Active in meeting</div>
@@ -100,7 +110,11 @@
       <div class="metric-card accent-cyan">
         <div class="metric-header">
           <span class="metric-title">Total Tab Switches</span>
-          <div class="metric-icon-box">⚡</div>
+          <div class="metric-icon-box" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+          </div>
         </div>
         <div class="metric-value" id="kpi-switches-count">0</div>
         <div class="metric-subtitle">Left Google Meet tab</div>
@@ -109,7 +123,12 @@
       <div class="metric-card accent-amber">
         <div class="metric-header">
           <span class="metric-title">Total Time Away</span>
-          <div class="metric-icon-box">⏱️</div>
+          <div class="metric-icon-box" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
         </div>
         <div class="metric-value" id="kpi-total-away">00:00</div>
         <div class="metric-subtitle">Cumulative across class</div>
@@ -118,7 +137,12 @@
       <div class="metric-card accent-emerald">
         <div class="metric-header">
           <span class="metric-title">Max Single Away</span>
-          <div class="metric-icon-box">📈</div>
+          <div class="metric-icon-box" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+              <polyline points="17 6 23 6 23 12"></polyline>
+            </svg>
+          </div>
         </div>
         <div class="metric-value" id="kpi-longest-away">00:00</div>
         <div class="metric-subtitle">Longest individual switch</div>
@@ -152,24 +176,41 @@
         </div>
         <div class="insights-list" id="insights-list">
           <div class="insight-item">
-            <span class="insight-icon">🛡️</span>
+            <span class="insight-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <polyline points="9 12 11 14 15 10"></polyline>
+              </svg>
+            </span>
             <div class="insight-body">
               <h4>Zero Content Tracking</h4>
-              <p>Per Role 1 & Role 5 privacy contract, only "left" & "returned" timestamps are received. No URL, screen, or browser history.</p>
+              <p>Per Role 1 &amp; Role 5 privacy contract, only "left" &amp; "returned" timestamps are received. No URL, screen, or browser history.</p>
             </div>
           </div>
           <div class="insight-item">
-            <span class="insight-icon">🔍</span>
+            <span class="insight-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </span>
             <div class="insight-body">
               <h4 id="insight-top-student-title">Most Distracted</h4>
               <p id="insight-top-student-text">Loading participant analytics...</p>
             </div>
           </div>
           <div class="insight-item">
-            <span class="insight-icon">📡</span>
+            <span class="insight-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+              </svg>
+            </span>
             <div class="insight-body">
               <h4>Data Architecture</h4>
-              <p>Centralized in <code>data.js</code> via <code>getEvents()</code>. Ready for Wednesday's Supabase/Firebase connection.</p>
+              <p>Centralized in <code>data.js</code> via <code>getEvents()</code>. Fully integrated with Supabase Realtime.</p>
             </div>
           </div>
         </div>
@@ -235,7 +276,13 @@
 
         <!-- Friendly Empty State View (Shown when no events found) -->
         <div class="empty-state" id="empty-state-view" style="display: none;">
-          <div class="empty-state-icon">📭</div>
+          <div class="empty-state-icon" aria-hidden="true">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); opacity: 0.85;">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </div>
           <h3 id="empty-state-title">No Events Found</h3>
           <p id="empty-state-desc">There are no focus tracking records for this meeting code yet. Ensure students have the extension active and have joined the meeting.</p>
           <button type="button" class="btn-primary" id="empty-state-reset-btn">Load Default Meeting (abc-defg-hij)</button>
@@ -265,7 +312,12 @@
       <!-- Logged-in view (shown when teacher is signed in) -->
       <div id="teacher-profile-view" style="display: none;">
         <div class="profile-card" style="text-align: center; padding: 1rem 0;">
-          <div class="profile-avatar" id="teacher-profile-avatar" style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #06b6d4); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #fff; margin: 0 auto 0.75rem auto;">👨‍🏫</div>
+          <div class="profile-avatar" id="teacher-profile-avatar" style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #06b6d4); display: flex; align-items: center; justify-content: center; color: #fff; margin: 0 auto 0.75rem auto;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
           <h4 id="teacher-profile-name" style="color: #fff; font-size: 1.1rem; margin-bottom: 0.25rem;">Teacher Active</h4>
           <p id="teacher-profile-email" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.75rem;">teacher@gmail.com</p>
           <div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.75rem; border-radius: 999px; background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.75rem; font-weight: 600;">
@@ -313,7 +365,13 @@
         <!-- Optional Supabase Credentials Drawer -->
         <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed var(--border-subtle);">
           <button type="button" id="toggle-supabase-settings" style="background: transparent; border: none; color: var(--text-faint); font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; width: 100%; justify-content: space-between;">
-            <span>⚙️ Supabase Connection Settings</span>
+            <span style="display: inline-flex; align-items: center; gap: 0.35rem;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              Supabase Connection Settings
+            </span>
             <span id="supabase-settings-chevron">▼</span>
           </button>
           <div id="supabase-settings-box" style="display: none; margin-top: 0.75rem;">
