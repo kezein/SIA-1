@@ -115,3 +115,50 @@ END $$;
 -- TO anon
 -- USING (true);
 -- -----------------------------------------------------------------------------
+
+-- 6. Archived Meeting RPC (clear_meeting_events)
+-- ==============================================================================
+-- Allows authenticated teachers to permanently delete all focus events for a
+-- specific meeting code, replacing manual SQL queries in the Supabase editor.
+--
+-- Design decisions:
+--   • SECURITY DEFINER — runs as the function owner, bypassing per-row RLS
+--     policies on focus_events. This is safe here because access is tightly
+--     controlled by the GRANT/REVOKE block below (only `authenticated` callers).
+--   • REVOKE EXECUTE FROM PUBLIC — PostgreSQL grants execute to all by default;
+--     we explicitly remove it so anon keys cannot call this function.
+--   • GRANT EXECUTE TO authenticated — only Supabase Auth'd users (teachers
+--     who logged in via the dashboard) can invoke this RPC.
+--   • set search_path = '' — prevents search-path injection attacks inside
+--     SECURITY DEFINER functions (PostgreSQL best practice).
+-- ==============================================================================
+
+-- Drop first to allow idempotent re-runs of this script
+DROP FUNCTION IF EXISTS public.clear_meeting_events(text);
+
+CREATE OR REPLACE FUNCTION public.clear_meeting_events(target_code text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  -- Guard: reject empty or whitespace-only meeting codes
+  IF target_code IS NULL OR trim(target_code) = '' THEN
+    RAISE EXCEPTION 'clear_meeting_events: target_code must not be empty';
+  END IF;
+
+  DELETE FROM public.focus_events
+  WHERE "meetingCode" = trim(target_code);
+END;
+$$;
+
+-- Lock down execution: remove the default PUBLIC grant, then re-allow authenticated
+REVOKE EXECUTE ON FUNCTION public.clear_meeting_events(text) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.clear_meeting_events(text) TO authenticated;
+
+-- Document the function for Supabase Studio / pg_dump
+COMMENT ON FUNCTION public.clear_meeting_events(text) IS
+  'Permanently deletes all focus_events for a given meetingCode. '
+  'Callable only by authenticated users (teachers). '
+  'Intended as a safe archive / reset utility for past sessions.';
