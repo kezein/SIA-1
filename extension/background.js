@@ -13,6 +13,15 @@
 importScripts('config.js', 'supabaseClient.js');
 
 /**
+ * Maximum plausible away duration for a single absence event.
+ * If a student closes their laptop or Chrome while marked away and reopens
+ * it hours later, the stale lastLeaveTime would produce absurd durations
+ * (e.g. 18 h). Cap at 3 hours so analytics averages remain meaningful.
+ * A capped event is still recorded — it is NOT silently dropped.
+ */
+const MAX_AWAY_DURATION_MS = 3 * 60 * 60 * 1000; // 3 hours in ms
+
+/**
  * Sends the formatted event to the backend database.
  * TODO: Role 3 and I will connect this on Wednesday.
  * @param {Object} event - The shared event object
@@ -113,10 +122,20 @@ async function handleFocusEvent(message) {
     else if (message.type === 'returned') {
         const returnTimestamp = message.timestamp || Date.now();
 
-        // Compute duration = returned timestamp - saved leave timestamp
+        // Compute duration = returned timestamp - saved leave timestamp.
+        // Clamp to MAX_AWAY_DURATION_MS to prevent stale sessions (e.g. laptop
+        // closed overnight) from recording absurd durations and skewing averages.
         let duration = 0;
         if (lastLeaveTime) {
-            duration = Math.max(0, returnTimestamp - lastLeaveTime);
+            const rawDuration = Math.max(0, returnTimestamp - lastLeaveTime);
+            if (rawDuration > MAX_AWAY_DURATION_MS) {
+                console.warn(
+                    `[Meet Focus Tracker] Away duration capped: raw=${Math.round(rawDuration / 60000)}min ` +
+                    `exceeds limit (${MAX_AWAY_DURATION_MS / 3600000}h). ` +
+                    'Likely a stale session from a previous browser/laptop shutdown.'
+                );
+            }
+            duration = Math.min(rawDuration, MAX_AWAY_DURATION_MS);
             totalAway += duration;
         }
 
