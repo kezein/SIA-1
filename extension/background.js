@@ -206,6 +206,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
         return true; // Keep channel open for async chrome.storage callback
     }
+
+    // Tab close / unload: content.js fired a session_ended event via sendMessage.
+    // Clear lastLeaveTime so the student does not appear permanently "Away"
+    // on the teacher's dashboard after closing the Meet tab.
+    if (message && message.type === 'session_ended') {
+        chrome.storage.local.set({ lastLeaveTime: null }, () => {
+            console.log('[Meet Focus Tracker] Session ended — lastLeaveTime cleared for clean state.');
+        });
+        sendResponse({ status: 'ok' });
+        return true;
+    }
 });
 
 // 9. Open consent screen automatically when the extension is installed

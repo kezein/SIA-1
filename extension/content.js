@@ -107,7 +107,84 @@ window.addEventListener('focus', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. SPA Navigation Detection
+// 4. Page Unload / Tab Close Detection
+//    When a student closes the tab or navigates away entirely, the browser
+//    calls beforeunload synchronously. We cannot use async APIs here.
+//
+//    Strategy:
+//    A. navigator.sendBeacon — fire-and-forget HTTP POST queued by the browser,
+//       guaranteed to outlive the page context. Used to write directly to
+//       Supabase REST so the event is never lost even if the SW is killed.
+//    B. chrome.runtime.sendMessage — best-effort; may succeed if the SW is
+//       still alive when the tab closes. Background clears the stale away state.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Reads Supabase credentials from the global SUPABASE_CONFIG injected by config.js.
+ * Returns null if not configured.
+ */
+function getBeaconConfig() {
+  try {
+    const cfg = window.SUPABASE_CONFIG || {};
+    const url = (cfg.url || '').trim().replace(/\/+$/, '');
+    const key = (cfg.anonKey || '').trim();
+    if (!url || !key || url.includes('YOUR_PROJECT_ID') || key.includes('YOUR_SUPABASE_ANON_KEY')) {
+      return null;
+    }
+    return { url, key };
+  } catch (e) {
+    return null;
+  }
+}
+
+window.addEventListener('beforeunload', () => {
+  // Cancel any pending 500ms debounce timer — not needed during unload
+  if (leaveTimer !== null) {
+    clearTimeout(leaveTimer);
+    leaveTimer = null;
+  }
+
+  const meetingCode = getMeetingCode();
+  if (!meetingCode) return; // Only fire on actual meeting pages
+
+  const now = Date.now();
+
+  // --- Strategy A: navigator.sendBeacon → Supabase REST (most reliable) ---
+  const cfg = getBeaconConfig();
+  if (cfg && typeof navigator.sendBeacon === 'function') {
+    const endpoint = `${cfg.url}/rest/v1/focus_events`;
+    const payload = JSON.stringify({
+      meetingCode: meetingCode,
+      type: 'left',
+      timestamp: now,
+      // Beacon cannot read participant name from storage synchronously.
+      // Use a sentinel value that background.js / data.js can replace with
+      // the stored name when it processes the session_ended message below.
+      participant: '__beacon_unload__'
+    });
+    const blob = new Blob([payload], { type: 'application/json' });
+    // sendBeacon returns false if the queue is full — we swallow it silently
+    navigator.sendBeacon(endpoint, blob);
+    console.log('[Meet Focus Tracker] sendBeacon fired on unload for:', meetingCode);
+  }
+
+  // --- Strategy B: chrome.runtime.sendMessage (best-effort, may not complete) ---
+  // We send a distinct "session_ended" type so background.js can clear
+  // lastLeaveTime without double-counting the switch.
+  try {
+    const msg = chrome.runtime.sendMessage({
+      type: 'session_ended',
+      timestamp: now,
+      meetingCode: meetingCode
+    });
+    if (msg && typeof msg.catch === 'function') msg.catch(() => {});
+  } catch (e) {
+    // Expected to fail when the SW is already torn down — silently ignore
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. SPA Navigation Detection
 //    Google Meet is a Single Page Application: navigating from the lobby to a
 //    live call (e.g. /abc-defg-hij) never triggers a page reload, so the URL
 //    changes silently. We watch for these changes and notify the background
