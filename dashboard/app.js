@@ -18,6 +18,7 @@
   let searchFilter = "";
   let isTeacherLoggedIn = false;
   let pollingTimer = null;
+  let currentDateRange = "all"; // 'today' | 'yesterday' | 'last7' | 'all'
 
   // DOM Elements
   const meetingCodeInput = document.getElementById("meeting-code-input");
@@ -168,8 +169,8 @@
     }
 
     try {
-      // Call Role 4 centralized data function
-      currentEvents = await window.DashboardData.getEvents(currentMeetingCode);
+      // Call Role 4 centralized data function, passing active date range filter
+      currentEvents = await window.DashboardData.getEvents(currentMeetingCode, { dateRange: currentDateRange });
       currentStats = window.DashboardData.computeParticipantStats(currentEvents);
 
       renderDashboard();
@@ -193,7 +194,7 @@
       if (pollingTimer) clearInterval(pollingTimer);
       pollingTimer = setInterval(async () => {
         try {
-          const freshEvents = await window.DashboardData.getEvents(currentMeetingCode);
+          const freshEvents = await window.DashboardData.getEvents(currentMeetingCode, { dateRange: currentDateRange });
           if (Array.isArray(freshEvents) && freshEvents.length !== currentEvents.length) {
             currentEvents = freshEvents;
             currentStats = window.DashboardData.computeParticipantStats(currentEvents);
@@ -895,6 +896,37 @@
     updateAvailableMeetingChips();
     const initialCode = getInitialMeetingCode();
     loadMeetingData(initialCode);
+
+    // Date Range Filter Buttons
+    const dateRangeBtns = document.querySelectorAll(".date-range-btn");
+    const DATE_RANGE_LABELS = {
+      today: "Today",
+      yesterday: "Yesterday",
+      last7: "Last 7 Days",
+      all: "All Time"
+    };
+    dateRangeBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const range = btn.getAttribute("data-range");
+        if (!range || range === currentDateRange) return;
+
+        // Update active state visually
+        dateRangeBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        currentDateRange = range;
+
+        // Update table subtitle to reflect active filter
+        const subtitleEl = document.getElementById("table-subtitle");
+        if (subtitleEl) {
+          const label = DATE_RANGE_LABELS[range] || range;
+          subtitleEl.innerHTML = `Showing focus data for meeting: <span id="current-meeting-code-display" style="font-family: monospace; color: #93c5fd;">${currentMeetingCode}</span> &mdash; <span style="color: var(--warning); font-weight: 600;">${label}</span>`;
+        }
+
+        showToast(`Filtering by: ${DATE_RANGE_LABELS[range] || range}`);
+        loadMeetingData(currentMeetingCode);
+      });
+    });
   });
 
   // Handle browser back and forward navigation

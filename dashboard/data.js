@@ -212,36 +212,80 @@ async function loadAllEvents() {
 }
 
 /**
+ * Returns { startMs, endMs } epoch timestamps for a named date range preset.
+ * Used to filter events to a specific class session or time window.
+ *
+ * @param {'today'|'yesterday'|'last7'|'all'} range
+ * @returns {{ startMs: number, endMs: number }}
+ */
+function getDateRangeTimestamps(range) {
+  const now = Date.now();
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayStartMs = todayStart.getTime();
+
+  switch (range) {
+    case 'today':
+      return { startMs: todayStartMs, endMs: now };
+
+    case 'yesterday': {
+      const yesterdayStart = todayStartMs - 86400000; // -24h
+      return { startMs: yesterdayStart, endMs: todayStartMs - 1 };
+    }
+
+    case 'last7': {
+      const sevenDaysAgo = todayStartMs - 6 * 86400000; // inclusive of today
+      return { startMs: sevenDaysAgo, endMs: now };
+    }
+
+    case 'all':
+    default:
+      return { startMs: 0, endMs: now };
+  }
+}
+
+/**
  * Main data access function required by Role 4.
  * Fetches events matching the specified meetingCode.
  * Queries Supabase table `focus_events` live if available, with mock fallback.
- * 
+ *
  * @param {string} meetingCode - The Google Meet code (e.g. 'abc-defg-hij')
+ * @param {{ dateRange?: 'today'|'yesterday'|'last7'|'all' }} [options]
  * @returns {Promise<Array>} Array of event objects matching the meeting code
  */
-async function getEvents(meetingCode) {
+async function getEvents(meetingCode, options = {}) {
   if (!meetingCode) return [];
   const normalizedCode = meetingCode.trim();
+  const { dateRange = 'all' } = options;
+  const { startMs, endMs } = getDateRangeTimestamps(dateRange);
 
   const client = initSupabase();
 
   if (client) {
     try {
-      // Query focus_events table designed by Aaron Celindro in supabase/schema.sql
-      const { data, error } = await client
+      // Build query — apply date range filter server-side when not 'all'
+      let query = client
         .from('focus_events')
         .select('*')
         .ilike('meetingCode', normalizedCode)
         .order('timestamp', { ascending: true });
 
+      if (dateRange !== 'all') {
+        query = query.gte('timestamp', startMs).lte('timestamp', endMs);
+      }
+
+      const { data, error } = await query;
+
       if (error) {
         console.warn('[Dashboard] Supabase query notice:', error.message);
       } else if (Array.isArray(data) && data.length > 0) {
-        console.log(`[Dashboard] Fetched ${data.length} live event(s) from Supabase for "${normalizedCode}"`);
+        console.log(
+          `[Dashboard] Fetched ${data.length} live event(s) from Supabase for "${normalizedCode}" [${dateRange}]`
+        );
         return data;
       } else if (Array.isArray(data)) {
-        // Query succeeded and returned 0 events for this meeting code
-        // If it's one of the demo codes, fall back to mock data for demonstration
+        // Query succeeded but returned 0 events.
+        // For demo codes fall through to mock data so the UI stays demonstrable.
         if (normalizedCode.toLowerCase() === 'abc-defg-hij' || normalizedCode.toLowerCase() === 'xyz-uvwx-rst') {
           console.log('[Dashboard] No live events in Supabase for demo code; displaying mock demonstration.');
         } else {
@@ -253,11 +297,17 @@ async function getEvents(meetingCode) {
     }
   }
 
-  // Fallback to mock dataset
+  // Fallback to mock dataset — apply date range filter client-side
   const allEvents = await loadAllEvents();
-  return allEvents.filter(event => 
-    event.meetingCode && event.meetingCode.trim().toLowerCase() === normalizedCode.toLowerCase()
-  );
+  return allEvents.filter(event => {
+    if (!event.meetingCode) return false;
+    if (event.meetingCode.trim().toLowerCase() !== normalizedCode.toLowerCase()) return false;
+    if (dateRange !== 'all') {
+      const ts = Number(event.timestamp) || 0;
+      if (ts < startMs || ts > endMs) return false;
+    }
+    return true;
+  });
 }
 
 /**
@@ -450,6 +500,7 @@ if (typeof window !== "undefined") {
     signOut,
     getCurrentUser,
     onAuthStateChange,
-    subscribeToRealtime
+    subscribeToRealtime,
+    getDateRangeTimestamps
   };
 }
