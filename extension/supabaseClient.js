@@ -8,6 +8,13 @@
 
 const SupabaseClient = (() => {
   /**
+   * Rate-limit state: tracks the last network-request timestamp per participant.
+   * Keyed by participant name; prevents event floods (e.g. scripted window toggling).
+   */
+  const _lastSentAt = {};
+  const RATE_LIMIT_MS = 500; // minimum ms between successive requests per participant
+
+  /**
    * Retrieves configuration from global scope or chrome storage.
    */
   function getConfig() {
@@ -143,6 +150,22 @@ const SupabaseClient = (() => {
       console.error('[SupabaseClient]', err);
       return { success: false, error: err };
     }
+
+    // --- Rate limiting: enforce 500ms cooldown per participant ---
+    const participantKey = String(event.participant || '').trim();
+    const now = Date.now();
+    if (participantKey && _lastSentAt[participantKey] !== undefined) {
+      const elapsed = now - _lastSentAt[participantKey];
+      if (elapsed < RATE_LIMIT_MS) {
+        console.warn(
+          `[SupabaseClient] Rate limit: dropping event for "${participantKey}" ` +
+          `(${elapsed}ms since last request, cooldown is ${RATE_LIMIT_MS}ms)`
+        );
+        return { success: false, error: 'Rate limited – request sent too quickly' };
+      }
+    }
+    // Record the timestamp before the network call so concurrent calls are also throttled
+    if (participantKey) _lastSentAt[participantKey] = now;
 
     const participantName = String(event.participant || '').trim();
     const meetingCode = String(event.meetingCode || '').trim();
