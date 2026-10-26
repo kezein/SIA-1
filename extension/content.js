@@ -105,3 +105,65 @@ window.addEventListener('blur', () => {
 window.addEventListener('focus', () => {
   handleReturn();
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. SPA Navigation Detection
+//    Google Meet is a Single Page Application: navigating from the lobby to a
+//    live call (e.g. /abc-defg-hij) never triggers a page reload, so the URL
+//    changes silently. We watch for these changes and notify the background
+//    script whenever a valid meeting code appears in the path.
+//
+//    Strategy A: Navigation API (Chrome 102+, covers all MV3-capable Chrome).
+//    Strategy B: MutationObserver on <title> — lightweight fallback for any
+//                edge case where the Navigation API is unavailable.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Sends a `meeting_detected` message to the background script so it can
+ * persist the meeting code and keep the popup in sync.
+ * @param {string} code - A valid Google Meet meeting code
+ */
+function notifyMeetingDetected(code) {
+  if (!code) return;
+  console.log('[Meet Focus Tracker] SPA navigation — meeting detected:', code);
+  try {
+    const msg = chrome.runtime.sendMessage({ type: 'meeting_detected', meetingCode: code });
+    if (msg && typeof msg.catch === 'function') msg.catch(() => {});
+  } catch (e) {
+    console.warn('[Meet Focus Tracker] Failed to notify meeting_detected:', e);
+  }
+}
+
+// Keep track of the last code we notified so we don't fire duplicate messages
+// for the same meeting (Meet occasionally re-navigates within the same call).
+let _lastNotifiedCode = getMeetingCode();
+
+// Notify on initial load if the page already has a meeting code
+if (_lastNotifiedCode) {
+  notifyMeetingDetected(_lastNotifiedCode);
+}
+
+/**
+ * Called on every URL or title change; extracts and de-dupes meeting codes.
+ */
+function onUrlChange() {
+  const code = getMeetingCode();
+  if (code && code !== _lastNotifiedCode) {
+    _lastNotifiedCode = code;
+    notifyMeetingDetected(code);
+  }
+}
+
+// Strategy A — Navigation API (fires on every pushState / replaceState / popstate)
+if (typeof window.navigation !== 'undefined') {
+  window.navigation.addEventListener('navigate', onUrlChange);
+} else {
+  // Strategy B — MutationObserver on <title> (Google Meet always updates the
+  // page title when the route changes, making it a reliable SPA change signal)
+  const titleEl = document.querySelector('title');
+  if (titleEl) {
+    new MutationObserver(onUrlChange).observe(titleEl, { childList: true });
+  }
+  // Also listen to popstate for back/forward navigation
+  window.addEventListener('popstate', onUrlChange);
+}

@@ -187,6 +187,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // Return true to keep message channel open for async response
         return true;
     }
+
+    // SPA navigation: content.js detected a new meeting code in the URL.
+    // Persist it so popup.js can read it without a page reload.
+    if (message && message.type === 'meeting_detected' && message.meetingCode) {
+        chrome.storage.local.get(['meetingCode'], (data) => {
+            // Only update if no meeting code is already saved (don't overwrite
+            // an active session's code if the user navigated within the same call)
+            if (!data.meetingCode) {
+                chrome.storage.local.set({ meetingCode: message.meetingCode }, () => {
+                    console.log(
+                        '[Meet Focus Tracker] Meeting code saved from SPA navigation:',
+                        message.meetingCode
+                    );
+                });
+            }
+            sendResponse({ status: 'ok' });
+        });
+        return true; // Keep channel open for async chrome.storage callback
+    }
 });
 
 // 9. Open consent screen automatically when the extension is installed
