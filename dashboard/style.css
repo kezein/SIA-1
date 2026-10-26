@@ -698,6 +698,12 @@ body {
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+.status-pill.idle {
+  background: var(--warning-bg);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
 .status-dot {
   width: 6px;
   height: 6px;

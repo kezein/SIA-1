@@ -479,10 +479,15 @@
         badgeClass = "count-mid";
       }
 
-      // Status pill
-      const statusHtml = item.isCurrentlyAway
-        ? `<span class="status-pill away"><span class="status-dot"></span>Away</span>`
-        : `<span class="status-pill active"><span class="status-dot"></span>In Meet</span>`;
+      // Status pill — three states: active, away, disconnected/idle (>15 min away)
+      let statusHtml;
+      if (item.statusCode === "idle") {
+        statusHtml = `<span class="status-pill idle"><span class="status-dot"></span>Disconnected / Idle</span>`;
+      } else if (item.isCurrentlyAway) {
+        statusHtml = `<span class="status-pill away"><span class="status-dot"></span>Currently Away</span>`;
+      } else {
+        statusHtml = `<span class="status-pill active"><span class="status-dot"></span>In Meet</span>`;
+      }
 
       tr.innerHTML = `
         <td>

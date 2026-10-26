@@ -376,8 +376,26 @@ function computeParticipantStats(events) {
     }
   });
 
+  const DISCONNECT_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
+  const now = Date.now();
+
   return Array.from(map.values()).map(item => {
     const isCurrentlyAway = item.lastEvent && item.lastEvent.type === "left";
+    const currentAwayDuration = isCurrentlyAway && item.lastEvent
+      ? Math.max(0, now - (Number(item.lastEvent.timestamp) || 0))
+      : 0;
+    const isDisconnected = isCurrentlyAway && currentAwayDuration >= DISCONNECT_THRESHOLD_MS;
+
+    let statusCode = "active";
+    let statusLabel = "In Meet";
+
+    if (isDisconnected) {
+      statusCode = "idle";
+      statusLabel = "Disconnected / Idle";
+    } else if (isCurrentlyAway) {
+      statusCode = "away";
+      statusLabel = "Away";
+    }
     
     return {
       participant: item.participant,
@@ -386,7 +404,10 @@ function computeParticipantStats(events) {
       longestAway: item.longestAway,
       returnedCount: item.returnedCount,
       isCurrentlyAway: isCurrentlyAway,
-      status: isCurrentlyAway ? "Away (Tab Switched)" : "In Meet (Active)",
+      isDisconnected: isDisconnected,
+      currentAwayDuration: currentAwayDuration,
+      statusCode: statusCode,
+      status: statusLabel,
       formattedTotalAway: formatDuration(item.totalAway),
       formattedLongestAway: formatDuration(item.longestAway),
       events: item.events
