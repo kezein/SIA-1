@@ -23,7 +23,7 @@
   // DOM Elements
   const meetingCodeInput = document.getElementById("meeting-code-input");
   const loadMeetingBtn = document.getElementById("load-meeting-btn");
-  const quickCodeChips = document.querySelectorAll(".chip-btn");
+  const classSelect = document.getElementById("class-select");
   const currentMeetingCodeDisplay = document.getElementById("current-meeting-code-display");
 
   // KPI elements
@@ -48,17 +48,25 @@
   const exportCsvBtn = document.getElementById("export-csv-btn");
   const sortableHeaders = document.querySelectorAll(".data-table th.sortable");
 
-  // Insights
+  // Session dropdown & Insights
+  const sessionRangeSelect = document.getElementById("session-range-select");
   const insightTopStudentTitle = document.getElementById("insight-top-student-title");
   const insightTopStudentText = document.getElementById("insight-top-student-text");
+  const insightTopStudentContent = document.getElementById("insight-top-student-content");
+  const insightAwayBadge = document.getElementById("insight-away-badge");
+  const insightAwayContent = document.getElementById("insight-away-content");
+  const insightDisconnectedBadge = document.getElementById("insight-disconnected-badge");
+  const insightDisconnectedContent = document.getElementById("insight-disconnected-content");
 
   // Modals
   const teacherLoginBtn = document.getElementById("teacher-login-btn");
   const loginModal = document.getElementById("login-modal");
+  const loginModalTitle = document.getElementById("login-modal-title");
   const loginModalClose = document.getElementById("login-modal-close");
   const teacherLoginForm = document.getElementById("teacher-login-form");
   const authStatusDot = document.getElementById("auth-status-dot");
   const authBtnLabel = document.getElementById("auth-btn-label");
+  const headerTeacherAvatar = document.getElementById("header-teacher-avatar");
 
   // Auth & Profile DOM elements
   const teacherProfileView = document.getElementById("teacher-profile-view");
@@ -150,6 +158,14 @@
     meetingCodeInput.value = code;
     currentMeetingCodeDisplay.textContent = code;
 
+    // Sync class dropdown selection
+    if (classSelect) {
+      const optExists = Array.from(classSelect.options).some(o => o.value === code);
+      if (optExists) {
+        classSelect.value = code;
+      }
+    }
+
     // Persist chosen meeting code to localStorage
     try {
       localStorage.setItem("last_meeting_code", code);
@@ -211,28 +227,31 @@
   }
 
   /**
-   * Dynamically loads all active meeting codes found in the database into the quick chips
+   * Dynamically loads all active meeting codes found in the database into the class dropdown
    */
   async function updateAvailableMeetingChips() {
-    const container = document.getElementById("quick-code-chips");
-    if (!container || typeof window.DashboardData.getAvailableMeetingCodes !== "function") return;
+    if (!classSelect || typeof window.DashboardData.getAvailableMeetingCodes !== "function") return;
     try {
       const codes = await window.DashboardData.getAvailableMeetingCodes();
       if (Array.isArray(codes) && codes.length > 0) {
-        container.innerHTML = "";
+        // Remember current set to avoid unnecessary rebuilds
+        const existingCodes = Array.from(classSelect.options).map(o => o.value);
+        const codesStr = codes.join(",");
+        const existingStr = existingCodes.join(",");
+        if (codesStr === existingStr) return;
+
+        classSelect.innerHTML = "";
         codes.forEach(code => {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = `chip-btn ${code === currentMeetingCode ? "active" : ""}`;
-          btn.setAttribute("data-code", code);
+          const opt = document.createElement("option");
+          opt.value = code;
           const isDemo = code === "abc-defg-hij" || code === "xyz-uvwx-rst";
-          btn.textContent = `${code}${isDemo ? " (Demo)" : " (Live)"}`;
-          btn.addEventListener("click", () => loadMeetingData(code));
-          container.appendChild(btn);
+          opt.textContent = isDemo ? `${code} (Demo)` : code;
+          if (code === currentMeetingCode) opt.selected = true;
+          classSelect.appendChild(opt);
         });
       }
     } catch (e) {
-      console.warn("Could not update meeting chips:", e);
+      console.warn("Could not update class dropdown:", e);
     }
   }
 
@@ -288,19 +307,26 @@
     let dataValues = [];
     let backgroundColors = [];
     let borderColors = [];
+    let hoverBackgroundColors = [];
+    let hoverBorderColors = '#ffffff';
+    let yAxisTitleText = chartViewMode === "switches" ? "Tab Switches" : "Time Away (Seconds)";
 
     if (chartViewMode === "switches") {
       chartTitleText.textContent = "Tab Switches per Participant";
       datasetLabel = "Tab Switches";
       dataValues = currentStats.map(s => s.switches);
-      backgroundColors = currentStats.map(s => s.switches > 3 ? 'rgba(239, 68, 68, 0.75)' : 'rgba(99, 102, 241, 0.75)');
-      borderColors = currentStats.map(s => s.switches > 3 ? '#ef4444' : '#6366f1');
+      backgroundColors = currentStats.map(s => s.switches > 3 ? 'rgba(244, 63, 94, 0.90)' : 'rgba(56, 189, 248, 0.90)');
+      borderColors = currentStats.map(s => s.switches > 3 ? '#f43f5e' : '#38bdf8');
+      hoverBackgroundColors = currentStats.map(s => s.switches > 3 ? 'rgba(253, 164, 175, 1)' : 'rgba(125, 211, 252, 1)');
+      hoverBorderColors = '#ffffff';
     } else {
       chartTitleText.textContent = "Total Time Away (Seconds) per Participant";
       datasetLabel = "Time Away (seconds)";
       dataValues = currentStats.map(s => Math.round(s.totalAway / 1000));
-      backgroundColors = 'rgba(6, 182, 212, 0.75)';
-      borderColors = '#06b6d4';
+      backgroundColors = 'rgba(251, 146, 60, 0.90)';
+      borderColors = '#fb923c';
+      hoverBackgroundColors = 'rgba(253, 186, 116, 1)';
+      hoverBorderColors = '#ffffff';
     }
 
     if (chartInstance) {
@@ -309,6 +335,11 @@
       chartInstance.data.datasets[0].data = dataValues;
       chartInstance.data.datasets[0].backgroundColor = backgroundColors;
       chartInstance.data.datasets[0].borderColor = borderColors;
+      chartInstance.data.datasets[0].hoverBackgroundColor = hoverBackgroundColors;
+      chartInstance.data.datasets[0].hoverBorderColor = hoverBorderColors;
+      if (chartInstance.options.scales?.y?.title) {
+        chartInstance.options.scales.y.title.text = yAxisTitleText;
+      }
       chartInstance.update();
       return;
     }
@@ -323,7 +354,9 @@
           data: dataValues,
           backgroundColor: backgroundColors,
           borderColor: borderColors,
-          borderWidth: 1.5,
+          borderWidth: 2,
+          hoverBackgroundColor: hoverBackgroundColors,
+          hoverBorderColor: hoverBorderColors,
           borderRadius: 6,
           maxBarThickness: 48
         }]
@@ -336,16 +369,28 @@
             display: false
           },
           tooltip: {
-            backgroundColor: '#182234',
-            titleColor: '#f8fafc',
-            bodyColor: '#94a3b8',
-            borderColor: '#243048',
-            borderWidth: 1,
-            padding: 10,
+            backgroundColor: '#0b181c',
+            titleColor: '#d5f9ff',
+            titleFont: {
+              family: 'Plus Jakarta Sans',
+              size: 13,
+              weight: '700'
+            },
+            bodyColor: '#96b8c3',
+            bodyFont: {
+              family: 'Plus Jakarta Sans',
+              size: 12,
+              weight: '500'
+            },
+            borderColor: '#5fc0dd',
+            borderWidth: 1.5,
+            padding: 12,
+            boxPadding: 6,
+            usePointStyle: true,
             callbacks: {
               label: function (context) {
                 if (chartViewMode === "switches") {
-                  return ` ${context.parsed.y} tab switches`;
+                  return ` ${context.parsed.y} tab switch${context.parsed.y === 1 ? '' : 'es'}`;
                 }
                 const ms = context.parsed.y * 1000;
                 return ` Time away: ${window.DashboardData.formatDuration(ms)} (${context.parsed.y}s)`;
@@ -356,28 +401,62 @@
         scales: {
           x: {
             grid: {
-              color: 'rgba(255, 255, 255, 0.04)'
+              color: 'rgba(46, 77, 87, 0.4)',
+              borderColor: '#2e4d57',
+              borderWidth: 1.5
             },
             ticks: {
-              color: '#94a3b8',
+              color: '#d5f9ff',
               font: {
                 family: 'Plus Jakarta Sans',
-                size: 11
-              }
+                size: 12,
+                weight: '600'
+              },
+              padding: 6,
+              maxRotation: 35,
+              autoSkip: false
+            },
+            title: {
+              display: true,
+              text: "Participants",
+              color: '#96b8c3',
+              font: {
+                family: 'Plus Jakarta Sans',
+                size: 12,
+                weight: '600'
+              },
+              padding: { top: 8 }
             }
           },
           y: {
             beginAtZero: true,
             grid: {
-              color: 'rgba(255, 255, 255, 0.06)'
+              color: 'rgba(46, 77, 87, 0.45)',
+              borderColor: '#2e4d57',
+              borderWidth: 1.5,
+              borderDash: [4, 4]
             },
             ticks: {
               stepSize: 1,
-              color: '#94a3b8',
+              precision: 0,
+              color: '#d5f9ff',
               font: {
                 family: 'Plus Jakarta Sans',
-                size: 11
-              }
+                size: 12,
+                weight: '600'
+              },
+              padding: 8
+            },
+            title: {
+              display: true,
+              text: yAxisTitleText,
+              color: '#96b8c3',
+              font: {
+                family: 'Plus Jakarta Sans',
+                size: 12,
+                weight: '600'
+              },
+              padding: { bottom: 8 }
             }
           }
         }
@@ -390,19 +469,112 @@
    */
   function renderInsights() {
     if (!currentStats || currentStats.length === 0) {
-      insightTopStudentTitle.textContent = "No Activity";
-      insightTopStudentText.textContent = "No student events recorded for this meeting.";
+      if (insightTopStudentTitle) insightTopStudentTitle.textContent = "Most Frequent Switcher";
+      if (insightTopStudentContent) {
+        insightTopStudentContent.innerHTML = `<span class="insight-empty-text">No student events recorded for this meeting.</span>`;
+      } else if (insightTopStudentText) {
+        insightTopStudentText.textContent = "No student events recorded for this meeting.";
+      }
+      if (insightAwayBadge) insightAwayBadge.textContent = "0";
+      if (insightAwayContent) insightAwayContent.innerHTML = `<span class="insight-empty-text">No participants currently away.</span>`;
+      if (insightDisconnectedBadge) insightDisconnectedBadge.textContent = "0";
+      if (insightDisconnectedContent) insightDisconnectedContent.innerHTML = `<span class="insight-empty-text">No participants disconnected.</span>`;
       return;
     }
 
-    // Find participant with highest switch count
+    // 1. Currently Away Participants (isCurrentlyAway && !isDisconnected)
+    const awayStudents = currentStats.filter(s => s.isCurrentlyAway && !s.isDisconnected);
+    if (insightAwayBadge) {
+      insightAwayBadge.textContent = awayStudents.length;
+    }
+    if (insightAwayContent) {
+      if (awayStudents.length > 0) {
+        insightAwayContent.innerHTML = `
+          <div class="insight-names-wrap">
+            ${awayStudents.map(s => `
+              <span class="insight-name-pill away" title="${escapeHtml(s.participant)}">
+                <span class="status-dot"></span>${escapeHtml(s.participant)}
+              </span>
+            `).join("")}
+          </div>
+        `;
+      } else {
+        insightAwayContent.innerHTML = `<span class="insight-empty-text">No participants currently away.</span>`;
+      }
+    }
+
+    // 2. Disconnected / Idle Participants (isDisconnected / statusCode === 'idle')
+    const disconnectedStudents = currentStats.filter(s => s.isDisconnected || s.statusCode === "idle");
+    if (insightDisconnectedBadge) {
+      insightDisconnectedBadge.textContent = disconnectedStudents.length;
+    }
+    if (insightDisconnectedContent) {
+      if (disconnectedStudents.length > 0) {
+        insightDisconnectedContent.innerHTML = `
+          <div class="insight-names-wrap">
+            ${disconnectedStudents.map(s => `
+              <span class="insight-name-pill idle" title="${escapeHtml(s.participant)}">
+                <span class="status-dot"></span>${escapeHtml(s.participant)}
+              </span>
+            `).join("")}
+          </div>
+        `;
+      } else {
+        insightDisconnectedContent.innerHTML = `<span class="insight-empty-text">No participants disconnected.</span>`;
+      }
+    }
+
+    // 3. Most Frequent Participant Who Switched (Easy on the eyes visual format)
     const mostSwitched = [...currentStats].sort((a, b) => b.switches - a.switches)[0];
-    if (mostSwitched && mostSwitched.switches > 0) {
-      insightTopStudentTitle.textContent = `Most Frequent: ${mostSwitched.participant}`;
-      insightTopStudentText.textContent = `${mostSwitched.switches} tab switches recorded, with ${mostSwitched.formattedTotalAway} total time outside Google Meet.`;
-    } else {
-      insightTopStudentTitle.textContent = "High Class Focus";
-      insightTopStudentText.textContent = "All participants currently have zero recorded tab switches!";
+    if (insightTopStudentTitle) {
+      insightTopStudentTitle.textContent = "Most Frequent Switcher";
+    }
+
+    if (insightTopStudentContent) {
+      if (mostSwitched && mostSwitched.switches > 0) {
+        const initials = mostSwitched.participant
+          .split(" ")
+          .map(n => n[0])
+          .slice(0, 2)
+          .join("")
+          .toUpperCase();
+
+        insightTopStudentContent.innerHTML = `
+          <div class="mf-card">
+            <div class="mf-student-row">
+              <div class="mf-avatar">${initials}</div>
+              <span class="mf-name" title="${escapeHtml(mostSwitched.participant)}">${escapeHtml(mostSwitched.participant)}</span>
+            </div>
+            <div class="mf-stats-row">
+              <span class="mf-stat-badge switches" title="${mostSwitched.switches} tab switches">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 3 21 3 21 8"></polyline>
+                  <line x1="4" y1="20" x2="21" y2="3"></line>
+                  <polyline points="21 16 21 21 16 21"></polyline>
+                  <line x1="15" y1="15" x2="21" y2="21"></line>
+                  <line x1="4" y1="4" x2="9" y2="9"></line>
+                </svg>
+                <span class="mf-stat-num">${mostSwitched.switches}</span> switches
+              </span>
+              <span class="mf-stat-badge time" title="${mostSwitched.formattedTotalAway} total away">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span class="mf-stat-num">${mostSwitched.formattedTotalAway}</span> total away
+              </span>
+            </div>
+          </div>
+        `;
+      } else {
+        insightTopStudentContent.innerHTML = `<span class="insight-empty-text">All participants currently have 0 switches.</span>`;
+      }
+    } else if (insightTopStudentText) {
+      if (mostSwitched && mostSwitched.switches > 0) {
+        insightTopStudentText.innerHTML = `<strong>${escapeHtml(mostSwitched.participant)}</strong> has <strong>${mostSwitched.switches}</strong> tab switches (${mostSwitched.formattedTotalAway} total away).`;
+      } else {
+        insightTopStudentText.textContent = "All participants currently have zero recorded tab switches!";
+      }
     }
   }
 
@@ -554,7 +726,7 @@
         let desc = isLeft ? "Left Google Meet Tab (Focus Lost)" : "Returned to Google Meet";
         let durationInfo = "";
         if (!isLeft && typeof ev.duration === "number") {
-          durationInfo = `<span style="color: #38bdf8; font-weight: 600;">Away: ${window.DashboardData.formatDuration(ev.duration)}</span>`;
+          durationInfo = `<span style="color: #fb923c; font-weight: 600;">Away: ${window.DashboardData.formatDuration(ev.duration)}</span>`;
         }
 
         div.innerHTML = `
@@ -634,13 +806,16 @@
     }
   });
 
-  // Quick preset chips
-  quickCodeChips.forEach(chip => {
-    chip.addEventListener("click", () => {
-      const code = chip.getAttribute("data-code");
-      loadMeetingData(code);
+  // Class dropdown — selecting an existing class loads it
+  if (classSelect) {
+    classSelect.addEventListener("change", (e) => {
+      const code = e.target.value;
+      if (code) {
+        meetingCodeInput.value = code;
+        loadMeetingData(code);
+      }
     });
-  });
+  }
 
   // Chart view toggles
   toggleViewSwitches.addEventListener("click", () => {
@@ -701,27 +876,67 @@
   function updateTeacherAuthState(user) {
     if (user) {
       isTeacherLoggedIn = true;
-      if (authStatusDot) authStatusDot.classList.add("logged-in");
+      if (loginModalTitle) loginModalTitle.textContent = "Teacher Profile";
+      if (authStatusDot) {
+        authStatusDot.classList.add("logged-in");
+        authStatusDot.style.display = "none";
+      }
 
       const displayName = user.user_metadata?.full_name || (user.email ? user.email.split('@')[0] : "Sir (Teacher)");
       const email = user.email || "teacher@gmail.com";
 
-      if (authBtnLabel) authBtnLabel.textContent = displayName;
+      if (authBtnLabel) {
+        authBtnLabel.textContent = displayName;
+        authBtnLabel.style.display = "none";
+      }
       if (teacherProfileName) teacherProfileName.textContent = displayName;
       if (teacherProfileEmail) teacherProfileEmail.textContent = email;
 
-      if (user.user_metadata?.avatar_url && teacherProfileAvatar) {
-        teacherProfileAvatar.innerHTML = `<img src="${user.user_metadata.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-      } else if (teacherProfileAvatar) {
-        teacherProfileAvatar.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+      const avatarMarkupLarge = user.user_metadata?.avatar_url
+        ? `<img src="${user.user_metadata.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`
+        : `<svg width="58" height="58" viewBox="0 0 24 24" style="width: 58px; height: 58px; display: block;" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+
+      const avatarMarkupHeader = user.user_metadata?.avatar_url
+        ? `<img src="${user.user_metadata.avatar_url}" alt="${displayName}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`
+        : `<svg width="26" height="26" viewBox="0 0 24 24" style="width: 62%; height: 62%; display: block;" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+
+      if (teacherProfileAvatar) {
+        teacherProfileAvatar.innerHTML = avatarMarkupLarge;
+      }
+
+      if (headerTeacherAvatar) {
+        headerTeacherAvatar.innerHTML = avatarMarkupHeader;
+        headerTeacherAvatar.style.display = "flex";
+      }
+
+      if (teacherLoginBtn) {
+        teacherLoginBtn.classList.add("logged-in");
+        teacherLoginBtn.title = displayName;
+        teacherLoginBtn.setAttribute("aria-label", `Teacher profile: ${displayName}`);
       }
 
       if (teacherProfileView) teacherProfileView.style.display = "block";
       if (teacherAuthInputs) teacherAuthInputs.style.display = "none";
     } else {
       isTeacherLoggedIn = false;
-      if (authStatusDot) authStatusDot.classList.remove("logged-in");
-      if (authBtnLabel) authBtnLabel.textContent = "Teacher Login";
+      if (loginModalTitle) loginModalTitle.textContent = "Teacher Authentication";
+      if (authStatusDot) {
+        authStatusDot.style.display = "";
+        authStatusDot.classList.remove("logged-in");
+      }
+      if (authBtnLabel) {
+        authBtnLabel.style.display = "";
+        authBtnLabel.textContent = "Teacher Login";
+      }
+      if (headerTeacherAvatar) {
+        headerTeacherAvatar.style.display = "none";
+        headerTeacherAvatar.innerHTML = "";
+      }
+      if (teacherLoginBtn) {
+        teacherLoginBtn.classList.remove("logged-in");
+        teacherLoginBtn.removeAttribute("title");
+        teacherLoginBtn.setAttribute("aria-label", "Teacher Login");
+      }
 
       if (teacherProfileView) teacherProfileView.style.display = "none";
       if (teacherAuthInputs) teacherAuthInputs.style.display = "block";
@@ -755,6 +970,10 @@
 
   // Teacher Login Modal Handlers
   teacherLoginBtn.addEventListener("click", () => {
+    if (loginModalTitle) {
+      loginModalTitle.textContent = isTeacherLoggedIn ? "Teacher Profile" : "Teacher Authentication";
+    }
+
     // Populate current config in settings input
     const config = window.DashboardData.getSupabaseConfig();
     if (supabaseUrlInput && !supabaseUrlInput.value) supabaseUrlInput.value = config.url;
@@ -791,6 +1010,7 @@
     teacherSignoutBtn.addEventListener("click", async () => {
       try {
         await window.DashboardData.signOut();
+        try { localStorage.removeItem("demo_teacher_user"); } catch (e) {}
         updateTeacherAuthState(null);
         loginModal.classList.remove("active");
         showToast("Signed out successfully.");
@@ -811,6 +1031,7 @@
       showToast("Verifying credentials with Supabase...");
       const data = await window.DashboardData.signInWithEmail(email, password);
       if (data && data.user) {
+        try { localStorage.removeItem("demo_teacher_user"); } catch (e) {}
         updateTeacherAuthState(data.user);
         loginModal.classList.remove("active");
         showToast(`Welcome back, ${data.user.email}!`);
@@ -823,10 +1044,14 @@
 
     // Demo fallback sign-in
     isTeacherLoggedIn = true;
-    updateTeacherAuthState({
+    const demoUser = {
       email: email,
       user_metadata: { full_name: email.split('@')[0] }
-    });
+    };
+    try {
+      localStorage.setItem("demo_teacher_user", JSON.stringify(demoUser));
+    } catch (e) {}
+    updateTeacherAuthState(demoUser);
     loginModal.classList.remove("active");
     showToast(`Signed in as: ${email}`);
     loadMeetingData();
@@ -870,15 +1095,23 @@
   });
 
   // Initial load & Auth Listener
-  document.addEventListener("DOMContentLoaded", async () => {
-    // Check initial user session
+  async function initApp() {
+    // Check initial user session (Supabase or saved demo login)
+    let currentUser = null;
     if (typeof window.DashboardData.getCurrentUser === "function") {
-      const currentUser = await window.DashboardData.getCurrentUser();
-      if (currentUser) {
-        updateTeacherAuthState(currentUser);
-      } else {
-        updateConnectionStatusBadge();
-      }
+      currentUser = await window.DashboardData.getCurrentUser();
+    }
+    if (!currentUser) {
+      try {
+        const savedDemo = localStorage.getItem("demo_teacher_user");
+        if (savedDemo) currentUser = JSON.parse(savedDemo);
+      } catch (e) {}
+    }
+
+    if (currentUser) {
+      updateTeacherAuthState(currentUser);
+    } else {
+      updateConnectionStatusBadge();
     }
 
     // Listen for auth state changes
@@ -897,22 +1130,19 @@
     const initialCode = getInitialMeetingCode();
     loadMeetingData(initialCode);
 
-    // Date Range Filter Buttons
-    const dateRangeBtns = document.querySelectorAll(".date-range-btn");
+    // Session Date Range Filter Dropdown (Aligned Right)
     const DATE_RANGE_LABELS = {
+      all: "All Time",
       today: "Today",
       yesterday: "Yesterday",
-      last7: "Last 7 Days",
-      all: "All Time"
+      last7: "Last 7 Days"
     };
-    dateRangeBtns.forEach(btn => {
-      btn.addEventListener("click", () => {
-        const range = btn.getAttribute("data-range");
-        if (!range || range === currentDateRange) return;
 
-        // Update active state visually
-        dateRangeBtns.forEach(b => b.classList.remove("active"));
-        btn.classList.add("active");
+    if (sessionRangeSelect) {
+      sessionRangeSelect.value = currentDateRange || "all";
+      sessionRangeSelect.addEventListener("change", (e) => {
+        const range = e.target.value;
+        if (!range || range === currentDateRange) return;
 
         currentDateRange = range;
 
@@ -920,14 +1150,20 @@
         const subtitleEl = document.getElementById("table-subtitle");
         if (subtitleEl) {
           const label = DATE_RANGE_LABELS[range] || range;
-          subtitleEl.innerHTML = `Showing focus data for meeting: <span id="current-meeting-code-display" style="font-family: monospace; color: #93c5fd;">${currentMeetingCode}</span> &mdash; <span style="color: var(--warning); font-weight: 600;">${label}</span>`;
+          subtitleEl.innerHTML = `Showing focus data for meeting: <span id="current-meeting-code-display" style="font-family: monospace; color: var(--accent-primary);">${currentMeetingCode}</span> &mdash; <span style="color: var(--warning); font-weight: 600;">${label}</span>`;
         }
 
         showToast(`Filtering by: ${DATE_RANGE_LABELS[range] || range}`);
         loadMeetingData(currentMeetingCode);
       });
-    });
-  });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initApp);
+  } else {
+    initApp();
+  }
 
   // Handle browser back and forward navigation
   window.addEventListener("popstate", () => {

@@ -5,24 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meet Focus Tracker - Participant Consent</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #1a73e8;
-      --primary-hover: #1557b0;
-      --bg-color: #f8f9fa;
-      --card-bg: #ffffff;
-      --text-main: #202124;
-      --text-secondary: #5f6368;
-      --border: #dadce0;
-      --success-bg: #e6f4ea;
-      --success-border: #34a853;
-      --success-text: #137333;
-      --danger-bg: #fce8e6;
-      --danger-border: #ea4335;
-      --danger-text: #c5221f;
-      --info-bg: #e8f0fe;
-      --info-border: #1a73e8;
-      --info-text: #174ea6;
+      --bg-dark: #000407;
+      --bg-primary: #030d11;
+      --bg-surface: #0b181c;
+      --bg-surface-hover: #10242b;
+      --border-subtle: #2e4d57;
+      --border-focus: #5fc0dd;
+      --text-main: #d5f9ff;
+      --text-muted: #96b8c3;
+      --accent-primary: #5fc0dd;
+      --accent-coral: #fb923c;
+      --status-active: #10b981;
+      --status-idle: #f59e0b;
+      --status-away: #f43f5e;
+      --status-switch: #38bdf8;
     }
 
     * {
@@ -32,24 +34,27 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-color);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at 15% 15%, rgba(95, 192, 221, 0.12) 0%, transparent 50%),
+                  radial-gradient(circle at 85% 85%, rgba(232, 155, 128, 0.08) 0%, transparent 50%),
+                  var(--bg-primary);
       color: var(--text-main);
       line-height: 1.6;
-      padding: 32px 16px;
+      padding: 40px 20px;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
 
     .consent-card {
-      background: var(--card-bg);
+      background: var(--bg-surface);
       max-width: 680px;
       width: 100%;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(95, 192, 221, 0.2);
       padding: 36px 32px;
     }
 
@@ -63,26 +68,35 @@
     .icon-badge {
       width: 48px;
       height: 48px;
-      border-radius: 50%;
-      background-color: var(--info-bg);
-      color: var(--primary);
+      border-radius: 12px;
+      background: linear-gradient(135deg, #5fc0dd 0%, #20809d 100%);
+      color: #000407;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
       flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(95, 192, 221, 0.35);
     }
 
     h1 {
-      font-size: 24px;
-      font-weight: 600;
+      font-size: 22px;
+      font-weight: 700;
       color: var(--text-main);
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
     }
 
     .lead-text {
-      font-size: 15px;
-      color: var(--text-secondary);
+      font-size: 14.5px;
+      color: var(--text-muted);
       margin-bottom: 24px;
+      line-height: 1.6;
     }
 
     .privacy-grid {
@@ -96,41 +110,44 @@
       .privacy-grid {
         grid-template-columns: 1fr;
       }
+      .consent-card {
+        padding: 24px 20px;
+      }
     }
 
     .section-box {
-      border-radius: 8px;
+      border-radius: 10px;
       padding: 16px 18px;
-      font-size: 14px;
+      font-size: 13.5px;
     }
 
     .section-box.tracked {
-      background-color: #f0fdf4;
-      border: 1px solid #bbf7d0;
+      background-color: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.35);
     }
 
     .section-box.not-tracked {
-      background-color: #fef2f2;
-      border: 1px solid #fecaca;
+      background-color: rgba(244, 63, 94, 0.08);
+      border: 1px solid rgba(244, 63, 94, 0.35);
     }
 
     .section-title {
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 14px;
+      font-size: 13px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
     }
 
     .section-box.tracked .section-title {
-      color: #166534;
+      color: #10b981;
     }
 
     .section-box.not-tracked .section-title {
-      color: #991b1b;
+      color: #f43f5e;
     }
 
     ul.check-list {
@@ -138,11 +155,12 @@
     }
 
     ul.check-list li {
-      margin-bottom: 8px;
+      margin-bottom: 9px;
       position: relative;
       padding-left: 22px;
-      font-size: 13.5px;
-      line-height: 1.45;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-muted);
     }
 
     ul.check-list li:last-child {
@@ -153,30 +171,44 @@
       content: "✔";
       position: absolute;
       left: 0;
-      color: var(--success-text);
+      color: #10b981;
       font-weight: bold;
+    }
+
+    .section-box.tracked strong {
+      color: #34d399;
+      font-weight: 600;
     }
 
     .section-box.not-tracked ul.check-list li::before {
       content: "✖";
       position: absolute;
       left: 0;
-      color: var(--danger-text);
+      color: #f43f5e;
       font-weight: bold;
     }
 
+    .section-box.not-tracked strong {
+      color: #fb7185;
+      font-weight: 600;
+    }
+
     .info-callout {
-      background-color: var(--info-bg);
-      border-left: 4px solid var(--info-border);
+      background-color: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-left: 4px solid #38bdf8;
       padding: 14px 16px;
-      border-radius: 4px;
+      border-radius: 8px;
       margin-bottom: 24px;
       font-size: 13.5px;
-      color: var(--info-text);
+      color: var(--text-main);
     }
 
     .info-callout p {
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
     }
 
     .info-callout p:last-child {
@@ -184,7 +216,24 @@
     }
 
     .info-callout strong {
-      color: #0d47a1;
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    .info-callout svg {
+      color: #38bdf8;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .info-callout code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-subtle);
+      color: var(--accent-primary);
+      padding: 2px 6px;
+      border-radius: 4px;
     }
 
     .actions {
@@ -192,62 +241,88 @@
       gap: 12px;
       justify-content: flex-end;
       align-items: center;
-      padding-top: 12px;
-      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      border-top: 1px solid var(--border-subtle);
     }
 
     button {
       font-family: inherit;
       font-size: 14px;
       font-weight: 600;
-      padding: 10px 22px;
-      border-radius: 6px;
+      padding: 10px 24px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: background-color 0.2s, border-color 0.2s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .btn-agree {
-      background-color: var(--primary);
-      color: #ffffff;
-      border: 1px solid var(--primary);
+      background: linear-gradient(135deg, #6fd5ef 0%, #46b7d7 100%);
+      color: #020b0e;
+      border: 1px solid rgba(95, 192, 221, 0.5);
+      box-shadow: 0 4px 14px rgba(95, 192, 221, 0.3);
+      font-weight: 700;
     }
 
     .btn-agree:hover {
-      background-color: var(--primary-hover);
-      border-color: var(--primary-hover);
+      background: linear-gradient(135deg, #8fe0f5 0%, #5fc0dd 100%);
+      box-shadow: 0 6px 18px rgba(95, 192, 221, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .btn-agree:active {
+      transform: translateY(0);
+    }
+
+    .btn-agree.agreed {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-color: #10b981;
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-agree.agreed:hover {
+      background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
     }
 
     .btn-decline {
-      background-color: transparent;
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
     }
 
     .btn-decline:hover {
-      background-color: #f1f3f4;
+      background: rgba(46, 77, 87, 0.25);
+      border-color: var(--accent-primary);
       color: var(--text-main);
+      transform: translateY(-1px);
+    }
+
+    .btn-decline:active {
+      transform: translateY(0);
     }
 
     .status-banner {
       display: none;
       margin-top: 20px;
       padding: 12px 16px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       text-align: center;
+      transition: all 0.2s ease;
     }
 
     .status-banner.success {
-      background-color: var(--success-bg);
-      border: 1px solid var(--success-border);
-      color: var(--success-text);
+      background-color: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
     }
 
     .status-banner.warning {
-      background-color: var(--danger-bg);
-      border: 1px solid var(--danger-border);
-      color: var(--danger-text);
+      background-color: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fb7185;
     }
   </style>
 </head>
@@ -255,14 +330,14 @@
   <div class="consent-card">
     <div class="header">
       <div class="icon-badge">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
           <polyline points="9 12 11 14 15 10"></polyline>
         </svg>
       </div>
       <div>
         <h1>Participant Consent</h1>
-        <p style="font-size: 13px; color: var(--text-secondary);">Meet Focus Tracker</p>
+        <p class="subtitle">Meet Focus Tracker</p>
       </div>
     </div>
 
@@ -299,18 +374,18 @@
     </div>
 
     <div class="info-callout">
-      <p style="display: flex; align-items: flex-start; gap: 8px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 3px;">
+      <p>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="2" y1="12" x2="22" y2="12"></line>
           <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
         </svg>
         <span><strong>Where does it run?</strong> Exclusively on <code>meet.google.com</code>. It is completely inactive on any other website.</span>
       </p>
-      <p style="display: flex; align-items: flex-start; gap: 8px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 3px;">
+      <p>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-          <circle cx="12" cy="12" r="3"></circle>
+          <circle cx="12" cy="3" r="3"></circle>
         </svg>
         <span><strong>Who can see this data?</strong> Only your teacher or instructor, who views your focus count and away time on the teacher dashboard for this meeting.</span>
       </p>

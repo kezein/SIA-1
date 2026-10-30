@@ -22,6 +22,7 @@ try {
 
 // DOM Element References
 const consentBanner = document.getElementById('consent-banner');
+const consentRequiredHint = document.getElementById('consent-required-hint');
 const openConsentBtn = document.getElementById('open-consent-btn');
 const sessionBadge = document.getElementById('session-badge');
 
@@ -54,6 +55,7 @@ const resetConfirmBtn = document.getElementById('reset-confirm-btn');
 // State tracking
 let currentSavedName = '';
 let currentSavedCode = '';
+let isConsentGiven = false;
 
 /**
  * Extracts and cleans a Google Meet code from raw input or pasted URLs.
@@ -103,12 +105,15 @@ function formatDuration(ms) {
  * @param {boolean} consentGiven - Whether consent has been granted
  */
 function updateConsentDisplay(consentGiven) {
+  isConsentGiven = consentGiven === true;
   if (!consentBanner) return;
-  if (consentGiven === true) {
+  if (isConsentGiven) {
     consentBanner.classList.add('hidden');
+    if (consentRequiredHint) consentRequiredHint.classList.add('hidden');
   } else {
     consentBanner.classList.remove('hidden');
   }
+  validateInputs();
 }
 
 /**
@@ -128,30 +133,41 @@ function updateTotalAwayDisplay(totalAway) {
 }
 
 /**
- * Validates whether both participant name and meeting code are filled.
- * Enables or disables the Save Details button accordingly.
- * @returns {boolean} Whether both fields have non-empty values
+ * Validates whether both participant name and meeting code are filled
+ * and affirmative consent is granted. Enables Confirm button only when all match.
+ * @returns {boolean} Whether all requirements are met
  */
 function validateInputs() {
   const name = participantInput.value.trim();
   const code = cleanMeetingCode(meetingCodeInput.value);
-  const isValid = name.length > 0 && code.length > 0;
+  const hasInputs = name.length > 0 && code.length > 0;
+
+  if (consentRequiredHint) {
+    if (hasInputs && !isConsentGiven) {
+      consentRequiredHint.classList.remove('hidden');
+    } else {
+      consentRequiredHint.classList.add('hidden');
+    }
+  }
+
+  // Both credentials AND consent are required before Confirm is enabled
+  const isValid = hasInputs && isConsentGiven;
   saveDetailsBtn.disabled = !isValid;
   return isValid;
 }
 
 /**
- * Updates the UI between Setup mode (locked stats) and Active mode (unlocked stats).
+ * Updates the UI between Setup mode (clean setup) and Active mode (unlocked stats).
  * @param {boolean} isUnlocked - Whether both details are provided and saved
  * @param {string} [name=''] - Participant name
  * @param {string} [code=''] - Meeting code
  */
 function setUnlockedState(isUnlocked, name = '', code = '') {
   if (isUnlocked) {
-    // Show active stats and hide lock screen
+    // Show active stats and reveal stats card
+    statsSection.classList.remove('hidden');
     statsSection.classList.remove('locked');
     statsSection.classList.remove('dimmed');
-    statsLockedMessage.classList.add('hidden');
     statsContent.classList.remove('hidden');
 
     // Switch details from inputs to summary
@@ -168,11 +184,8 @@ function setUnlockedState(isUnlocked, name = '', code = '') {
     sessionBadge.textContent = 'Active';
     sessionBadge.className = 'badge rounded-pill bg-success-subtle text-success-emphasis';
   } else {
-    // Show locked placeholder and hide stats
-    statsSection.classList.add('locked');
-    statsSection.classList.remove('dimmed');
-    statsLockedMessage.classList.remove('hidden');
-    statsContent.classList.add('hidden');
+    // Hide stats card completely in setup mode for a clean look
+    statsSection.classList.add('hidden');
 
     // Switch details to input mode
     detailsInputs.classList.remove('hidden');
@@ -255,7 +268,7 @@ function handleCancelDetails() {
   editTrackingNotice.classList.add('hidden');
   detailsSummary.classList.remove('hidden');
   editDetailsBtn.classList.remove('hidden');
-  saveDetailsBtn.textContent = 'Save Details';
+  saveDetailsBtn.textContent = 'Confirm';
 
   validateInputs();
 }

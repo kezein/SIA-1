@@ -27,8 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
     chrome.storage.local.get(['consentGiven'], (result) => {
       if (result.consentGiven === true) {
+        agreeBtn.classList.add('agreed');
+        agreeBtn.textContent = '✔ Agreed';
         setStatus('✔ You have already agreed to focus tracking. You are ready to join Google Meet.', 'success');
       } else if (result.consentGiven === false) {
+        agreeBtn.classList.remove('agreed');
+        agreeBtn.textContent = 'I Agree';
         setStatus('✖ You previously declined consent. Focus tracking is currently disabled.', 'warning');
       }
     });
@@ -36,18 +40,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Handle "I Agree" button click
   agreeBtn.addEventListener('click', () => {
+    agreeBtn.classList.add('agreed');
+    agreeBtn.textContent = '✔ Agreed';
+
+    const onComplete = () => {
+      setStatus('✔ Thank you! Consent granted. Returning to popup...', 'success');
+      setTimeout(() => {
+        // Try to trigger openPopup if supported by the browser
+        if (typeof chrome !== 'undefined' && chrome.action && typeof chrome.action.openPopup === 'function') {
+          try {
+            chrome.action.openPopup().catch(() => {});
+          } catch (e) {}
+        }
+        // Close the consent tab to return the user to the popup / previous page
+        window.close();
+      }, 600);
+    };
+
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-      chrome.storage.local.set({ consentGiven: true }, () => {
-        setStatus('✔ Thank you! Consent granted.', 'success');
-      });
+      chrome.storage.local.set({ consentGiven: true }, onComplete);
     } else {
       // Fallback for previewing without Chrome extension runtime
-      setStatus('✔ Thank you! Consent granted.', 'success');
+      onComplete();
     }
   });
 
   // Handle "Decline" button click
   declineBtn.addEventListener('click', () => {
+    agreeBtn.classList.remove('agreed');
+    agreeBtn.textContent = 'I Agree';
+
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.set({ consentGiven: false }, () => {
         setStatus('✖ Consent declined. Focus tracking will NOT run during your meetings.', 'warning');
