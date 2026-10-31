@@ -17,6 +17,7 @@
   let currentSort = "switches-desc";
   let searchFilter = "";
   let isTeacherLoggedIn = false;
+  let isSignUpMode = false;
   let pollingTimer = null;
   let currentDateRange = "all"; // 'today' | 'yesterday' | 'last7' | 'all'
 
@@ -60,6 +61,8 @@
 
   // Modals
   const teacherLoginBtn = document.getElementById("teacher-login-btn");
+  const landingPage = document.getElementById("landing-page");
+  const dashboardApp = document.getElementById("dashboard-app");
   const loginModal = document.getElementById("login-modal");
   const loginModalTitle = document.getElementById("login-modal-title");
   const loginModalClose = document.getElementById("login-modal-close");
@@ -71,13 +74,19 @@
   // Auth & Profile DOM elements
   const teacherProfileView = document.getElementById("teacher-profile-view");
   const teacherAuthInputs = document.getElementById("teacher-auth-inputs");
+  const authHeading = document.getElementById("auth-heading");
+  const authSubtitle = document.getElementById("auth-subtitle");
+  const authEnvironmentNote = document.getElementById("auth-environment-note");
+  const authModePrompt = document.getElementById("auth-mode-prompt");
+  const authModeToggle = document.getElementById("auth-mode-toggle");
+  const teacherNameField = document.getElementById("teacher-name-field");
+  const teacherNameInput = document.getElementById("teacher-name");
+  const loginSubmitBtn = document.getElementById("login-submit-btn");
   const teacherProfileName = document.getElementById("teacher-profile-name");
   const teacherProfileEmail = document.getElementById("teacher-profile-email");
   const teacherProfileAvatar = document.getElementById("teacher-profile-avatar");
   const teacherSignoutBtn = document.getElementById("teacher-signout-btn");
   const googleSigninBtn = document.getElementById("google-signin-btn");
-  const toggleSupabaseSettings = document.getElementById("toggle-supabase-settings");
-  const supabaseSettingsBox = document.getElementById("supabase-settings-box");
   const supabaseUrlInput = document.getElementById("supabase-url-input");
   const supabaseKeyInput = document.getElementById("supabase-key-input");
   const saveSupabaseSettingsBtn = document.getElementById("save-supabase-settings-btn");
@@ -874,6 +883,9 @@
   // ==========================================
 
   function updateTeacherAuthState(user) {
+    if (landingPage) landingPage.hidden = Boolean(user);
+    if (dashboardApp) dashboardApp.hidden = !user;
+
     if (user) {
       isTeacherLoggedIn = true;
       if (loginModalTitle) loginModalTitle.textContent = "Teacher Profile";
@@ -968,6 +980,15 @@
     }
   }
 
+  function updateAuthEnvironmentNote() {
+    if (!authEnvironmentNote) return;
+    const config = window.DashboardData.getSupabaseConfig();
+    authEnvironmentNote.hidden = config.isConfigured;
+    authEnvironmentNote.textContent = config.isConfigured
+      ? ""
+      : "Preview mode is active. Connect Supabase in Connection settings to create real accounts.";
+  }
+
   // Teacher Login Modal Handlers
   teacherLoginBtn.addEventListener("click", () => {
     if (loginModalTitle) {
@@ -992,6 +1013,22 @@
     }
   });
 
+  if (authModeToggle) {
+    authModeToggle.addEventListener("click", () => {
+      isSignUpMode = !isSignUpMode;
+      teacherNameField.hidden = !isSignUpMode;
+      teacherNameInput.required = isSignUpMode;
+      document.getElementById("teacher-password").autocomplete = isSignUpMode ? "new-password" : "current-password";
+      authHeading.textContent = isSignUpMode ? "Create your account" : "Welcome back";
+      authSubtitle.textContent = isSignUpMode
+        ? "Create an account to access your teacher dashboard."
+        : "Sign in to continue to your dashboard.";
+      authModePrompt.textContent = isSignUpMode ? "Already have an account?" : "New to Meet Focus Tracker?";
+      authModeToggle.textContent = isSignUpMode ? "Sign in" : "Create an account";
+      loginSubmitBtn.textContent = isSignUpMode ? "Create account" : "Sign in";
+    });
+  }
+
   // Google (Gmail) One-Click Sign In
   if (googleSigninBtn) {
     googleSigninBtn.addEventListener("click", async () => {
@@ -1014,35 +1051,67 @@
         updateTeacherAuthState(null);
         loginModal.classList.remove("active");
         showToast("Signed out successfully.");
-        loadMeetingData();
       } catch (err) {
         console.error("Sign out error:", err);
       }
     });
   }
 
-  // Teacher Email/Password Sign In Form
+  // Teacher Email/Password Authentication
   teacherLoginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = document.getElementById("teacher-email").value.trim();
     const password = document.getElementById("teacher-password").value;
 
+    if (isSignUpMode) {
+      try {
+        const { user, session } = await window.DashboardData.signUpWithEmail(
+          email,
+          password,
+          teacherNameInput.value.trim()
+        );
+        if (session && user) {
+          updateTeacherAuthState(user);
+          showToast("Account created. Welcome to Meet Focus Tracker!");
+          updateAvailableMeetingChips();
+          loadMeetingData();
+        } else if (user) {
+          showToast("Account created. Check your email to confirm your account, then sign in.");
+        } else {
+          showToast("Account creation did not return a user. Please try again.");
+        }
+      } catch (err) {
+        console.error("Account creation error:", err);
+        showToast(err.message || "Could not create your account.");
+      }
+      return;
+    }
+
+    const config = window.DashboardData.getSupabaseConfig();
     try {
-      showToast("Verifying credentials with Supabase...");
       const data = await window.DashboardData.signInWithEmail(email, password);
       if (data && data.user) {
         try { localStorage.removeItem("demo_teacher_user"); } catch (e) {}
         updateTeacherAuthState(data.user);
-        loginModal.classList.remove("active");
         showToast(`Welcome back, ${data.user.email}!`);
+        updateAvailableMeetingChips();
         loadMeetingData();
         return;
       }
     } catch (err) {
-      console.warn("Supabase password auth notice:", err.message);
+      if (config.isConfigured) {
+        console.error("Sign-in error:", err);
+        showToast(err.message || "Could not sign in. Check your email and password.");
+        return;
+      }
     }
 
-    // Demo fallback sign-in
+    if (config.isConfigured) {
+      showToast("Sign-in did not return a user. Please try again.");
+      return;
+    }
+
+    showToast("Preview mode: opening the demo dashboard.");
     isTeacherLoggedIn = true;
     const demoUser = {
       email: email,
@@ -1052,20 +1121,9 @@
       localStorage.setItem("demo_teacher_user", JSON.stringify(demoUser));
     } catch (e) {}
     updateTeacherAuthState(demoUser);
-    loginModal.classList.remove("active");
-    showToast(`Signed in as: ${email}`);
+    updateAvailableMeetingChips();
     loadMeetingData();
   });
-
-  // Supabase Settings Drawer Toggle
-  if (toggleSupabaseSettings && supabaseSettingsBox) {
-    toggleSupabaseSettings.addEventListener("click", () => {
-      const isHidden = supabaseSettingsBox.style.display === "none";
-      supabaseSettingsBox.style.display = isHidden ? "block" : "none";
-      const chevron = document.getElementById("supabase-settings-chevron");
-      if (chevron) chevron.textContent = isHidden ? "▲" : "▼";
-    });
-  }
 
   // Save Supabase Settings Button
   if (saveSupabaseSettingsBtn) {
@@ -1076,10 +1134,17 @@
         showToast("Please enter both Supabase URL and Anon Key.");
         return;
       }
-      window.DashboardData.saveSupabaseSettings(url, key);
+      const client = window.DashboardData.saveSupabaseSettings(url, key);
+      if (!client) {
+        showToast("Could not connect to Supabase. Check the project URL, anon key, and browser connection.");
+        authEnvironmentNote.hidden = false;
+        authEnvironmentNote.textContent = "Supabase could not connect. Check the project URL and anon key.";
+        updateConnectionStatusBadge();
+        return;
+      }
       showToast("Supabase configuration saved & connected!");
+      updateAuthEnvironmentNote();
       updateConnectionStatusBadge();
-      loadMeetingData();
     });
   }
 
@@ -1110,6 +1175,8 @@
 
     if (currentUser) {
       updateTeacherAuthState(currentUser);
+      updateAvailableMeetingChips();
+      loadMeetingData(getInitialMeetingCode());
     } else {
       updateConnectionStatusBadge();
     }
@@ -1119,6 +1186,7 @@
       window.DashboardData.onAuthStateChange((event, session) => {
         if (session && session.user) {
           updateTeacherAuthState(session.user);
+          updateAvailableMeetingChips();
           loadMeetingData();
         } else if (event === "SIGNED_OUT") {
           updateTeacherAuthState(null);
@@ -1126,9 +1194,10 @@
       });
     }
 
-    updateAvailableMeetingChips();
-    const initialCode = getInitialMeetingCode();
-    loadMeetingData(initialCode);
+    const config = window.DashboardData.getSupabaseConfig();
+    if (supabaseUrlInput && !supabaseUrlInput.value) supabaseUrlInput.value = config.url;
+    if (supabaseKeyInput && !supabaseKeyInput.value) supabaseKeyInput.value = config.key;
+    updateAuthEnvironmentNote();
 
     // Session Date Range Filter Dropdown (Aligned Right)
     const DATE_RANGE_LABELS = {

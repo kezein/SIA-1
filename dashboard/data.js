@@ -150,6 +150,27 @@ async function signInWithEmail(email, password) {
 }
 
 /**
+ * Creates a teacher account with Supabase email/password authentication.
+ */
+async function signUpWithEmail(email, password, fullName) {
+  const client = initSupabase();
+  if (!client) {
+    throw new Error("Supabase is not configured. Add your project URL and anon key in Connection settings to create an account.");
+  }
+
+  const { data, error } = await client.auth.signUp({
+    email: email.trim(),
+    password,
+    options: {
+      data: { full_name: fullName.trim() }
+    }
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
  * Signs out the teacher from Supabase session.
  */
 async function signOut() {
@@ -497,6 +518,7 @@ if (typeof window !== "undefined") {
     saveSupabaseSettings,
     signInWithGoogle,
     signInWithEmail,
+    signUpWithEmail,
     signOut,
     getCurrentUser,
     onAuthStateChange,

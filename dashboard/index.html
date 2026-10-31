@@ -6,8 +6,8 @@
   <meta name="description" content="Meet Focus Tracker Teacher Dashboard (Role 4) - Real-time student engagement, tab switch monitoring, and meeting focus analytics for Google Meet.">
   <title>Teacher Dashboard - Meet Focus Tracker</title>
   
-  <!-- Modern Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <!-- Brand icon -->
+  <link rel="icon" type="image/png" href="../img/icon.png">
   
   <!-- Modern Typography (Google Fonts) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,18 +25,93 @@
 </head>
 <body>
 
+  <main class="landing-page" id="landing-page">
+    <div class="landing-card">
+      <section class="landing-welcome" aria-labelledby="landing-heading">
+        <a class="landing-brand" href="#" aria-label="Meet Focus Tracker home">
+          <img src="../img/icon.png" alt="">
+          <span>Meet Focus Tracker</span>
+        </a>
+        <div class="landing-welcome-copy">
+          <span class="landing-eyebrow">A clearer view of every class</span>
+          <h1 id="landing-heading">Make every<br>lesson count.</h1>
+          <p>Understand student focus at a glance and create a more engaging learning experience.</p>
+        </div>
+        <img class="landing-mascot" src="../img/mascot.png" alt="Meet Focus Tracker's friendly mascot welcoming you">
+        <div class="landing-benefits" aria-label="Dashboard benefits">
+          <div><span>01</span><p>See class engagement<br>in real time</p></div>
+          <div><span>02</span><p>Understand focus<br>patterns over time</p></div>
+          <div><span>03</span><p>Keep student privacy<br>at the center</p></div>
+        </div>
+      </section>
+
+      <section class="landing-auth" aria-labelledby="auth-heading">
+        <div class="landing-auth-content" id="teacher-auth-inputs">
+          <span class="landing-auth-kicker" id="auth-kicker">TEACHER PORTAL</span>
+          <h2 id="auth-heading">Welcome back</h2>
+          <p class="landing-auth-subtitle" id="auth-subtitle">Sign in to continue to your dashboard.</p>
+          <p class="landing-environment-note" id="auth-environment-note" role="note" hidden></p>
+
+          <form id="teacher-login-form">
+            <div class="form-field" id="teacher-name-field" hidden>
+              <label class="form-label" for="teacher-name">Full name</label>
+              <input type="text" id="teacher-name" class="form-input" placeholder="Your name" autocomplete="name">
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="teacher-email">Email address</label>
+              <input type="email" id="teacher-email" class="form-input" placeholder="you@school.edu" autocomplete="email" required>
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="teacher-password">Password</label>
+              <input type="password" id="teacher-password" class="form-input" placeholder="Enter your password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn-primary landing-submit" id="login-submit-btn">Sign in</button>
+          </form>
+
+          <p class="landing-mode-switch">
+            <span id="auth-mode-prompt">New to Meet Focus Tracker?</span>
+            <button type="button" id="auth-mode-toggle">Create an account</button>
+          </p>
+
+          <div class="auth-divider"><span>or continue with</span></div>
+          <button type="button" class="btn-google-signin" id="google-signin-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            Continue with Google
+          </button>
+
+          <details class="landing-settings">
+            <summary id="toggle-supabase-settings">Connection settings</summary>
+            <div id="supabase-settings-box">
+              <div class="form-field">
+                <label class="form-label" for="supabase-url-input">Supabase project URL</label>
+                <input type="url" id="supabase-url-input" class="form-input" placeholder="https://your-project.supabase.co">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="supabase-key-input">Supabase anon key</label>
+                <input type="password" id="supabase-key-input" class="form-input" placeholder="Your public anon key">
+              </div>
+              <button type="button" class="btn-secondary" id="save-supabase-settings-btn">Save &amp; connect</button>
+            </div>
+          </details>
+          <p class="landing-privacy">Your class data stays private and is only available to authorized teachers.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="dashboard-app" id="dashboard-app" hidden>
   <div class="nav-bar">
   <!-- Top Navigation Header -->
     <header class="top-navbar" id="top-navbar">
       <div class="brand-section">
-        <div class="brand-icon" aria-hidden="true">
-          <!-- Focus / Target Icon -->
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <circle cx="12" cy="12" r="6"></circle>
-            <circle cx="12" cy="12" r="2"></circle>
-          </svg>
-        </div>
+        <div class="brand-icon" aria-label="Meet Focus Tracker logo">
+            <img src="../img/icon.png" alt="Meet Focus Tracker logo">
+          </div>
         <div class="brand-text">
           <h1>Meet Focus Tracker</h1>
           <p class="brand-tagline">Teacher Real-Time Engagement & Tab Switch Monitor</p>
@@ -375,7 +450,9 @@
 
   </div>
 
-  <!-- Modal: Teacher Login & Supabase Auth -->
+  </div>
+
+  <!-- Modal: Teacher Profile -->
   <div class="modal-overlay" id="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title">
     <div class="modal-card">
       <div class="modal-header">
@@ -405,21 +482,7 @@
       </div>
 
       <!-- Sign-in form (shown when teacher is logged out) -->
-      <div id="teacher-auth-inputs">
-
-        <form id="teacher-login-form">
-          <div class="form-field">
-            <label class="form-label" for="teacher-email">Teacher Email</label>
-            <input type="email" id="teacher-email" class="form-input" placeholder="sir@gmail.com" value="teacher@university.edu" required>
-          </div>
-          <div class="form-field">
-            <label class="form-label" for="teacher-password">Password</label>
-            <input type="password" id="teacher-password" class="form-input" placeholder="••••••••" value="demo-teacher-2026" required>
-          </div>
-          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 0.75rem; padding: 0.75rem 1rem; font-size: 0.92rem;" id="login-submit-btn">
-            Sign In 
-          </button>
-        </form>
+      <div id="legacy-auth-controls" hidden>
 
         <!-- divider -->
         <div class="auth-divider">
@@ -427,7 +490,7 @@
         </div>
 
         <!-- 1. Google (Gmail) Sign-In Button -->
-        <button type="button" class="btn-google-signin" id="google-signin-btn">
+        <button type="button" class="btn-google-signin" id="legacy-google-signin-btn">
           <svg width="18" height="18" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -439,7 +502,7 @@
 
         <!-- Optional Supabase Credentials Drawer -->
         <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed var(--border-subtle);">
-          <button type="button" id="toggle-supabase-settings" style="background: transparent; border: none; color: var(--text-faint); font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; width: 100%; justify-content: space-between;">
+          <button type="button" id="legacy-toggle-supabase-settings" style="background: transparent; border: none; color: var(--text-faint); font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; width: 100%; justify-content: space-between;">
             <span style="display: inline-flex; align-items: center; gap: 0.35rem;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3"></circle>
@@ -447,18 +510,18 @@
               </svg>
               Supabase Connection Settings
             </span>
-            <span id="supabase-settings-chevron">▼</span>
+            <span id="legacy-supabase-settings-chevron">▼</span>
           </button>
-          <div id="supabase-settings-box" style="display: none; margin-top: 0.75rem;">
+          <div id="legacy-supabase-settings-box" style="display: none; margin-top: 0.75rem;">
             <div class="form-field">
               <label class="form-label" style="font-size: 0.75rem;">Supabase Project URL</label>
-              <input type="text" id="supabase-url-input" class="form-input" style="font-size: 0.8rem; padding: 0.45rem 0.65rem;" placeholder="https://your-project.supabase.co">
+              <input type="text" id="legacy-supabase-url-input" class="form-input" style="font-size: 0.8rem; padding: 0.45rem 0.65rem;" placeholder="https://your-project.supabase.co">
             </div>
             <div class="form-field">
               <label class="form-label" style="font-size: 0.75rem;">Supabase Anon Key</label>
-              <input type="password" id="supabase-key-input" class="form-input" style="font-size: 0.8rem; padding: 0.45rem 0.65rem;" placeholder="eyJhbGci...">
+              <input type="password" id="legacy-supabase-key-input" class="form-input" style="font-size: 0.8rem; padding: 0.45rem 0.65rem;" placeholder="eyJhbGci...">
             </div>
-            <button type="button" class="btn-secondary" id="save-supabase-settings-btn" style="width: 100%; justify-content: center; font-size: 0.8rem; padding: 0.45rem;">
+            <button type="button" class="btn-secondary" id="legacy-save-supabase-settings-btn" style="width: 100%; justify-content: center; font-size: 0.8rem; padding: 0.45rem;">
               Save &amp; Connect
             </button>
           </div>
