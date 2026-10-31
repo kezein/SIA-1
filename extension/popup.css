@@ -76,9 +76,16 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000407;
   flex-shrink: 0;
   box-shadow: 0 0 12px rgba(95, 192, 221, 0.3);
+  overflow: hidden;
+}
+
+.brand-icon-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .text-secondary {

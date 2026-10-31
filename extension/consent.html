@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meet Focus Tracker - Participant Consent</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="icon.png">
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,12 +70,19 @@
       height: 48px;
       border-radius: 12px;
       background: linear-gradient(135deg, #5fc0dd 0%, #20809d 100%);
-      color: #000407;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
       box-shadow: 0 4px 14px rgba(95, 192, 221, 0.35);
+      overflow: hidden;
+    }
+
+    .icon-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
     }
 
     h1 {
@@ -329,11 +336,8 @@
 <body>
   <div class="consent-card">
     <div class="header">
-      <div class="icon-badge">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          <polyline points="9 12 11 14 15 10"></polyline>
-        </svg>
+      <div class="icon-badge" aria-label="Meet Focus Tracker logo">
+        <img src="icon.png" alt="Meet Focus Tracker logo">
       </div>
       <div>
         <h1>Participant Consent</h1>
