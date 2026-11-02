@@ -10,6 +10,11 @@ let away = false;
 // Timer ID for the 500ms delay before confirming a "left" event
 let leaveTimer = null;
 
+// Picture-in-Picture keeps Meet visible while its original tab may remain active.
+// Track active PiP surfaces separately so ordinary focus events do not end the
+// away period before the participant closes the pop-out.
+const pictureInPictureSources = new Set();
+
 /**
  * Extracts the meeting code from the URL path.
  * Example: https://meet.google.com/abc-defg-hij -> "abc-defg-hij"
@@ -74,6 +79,10 @@ function handleLeave() {
  * (tab becomes visible or window regains focus).
  */
 function handleReturn() {
+  if (pictureInPictureSources.size > 0) {
+    return;
+  }
+
   // If participant returned within 500 ms, cancel the pending "left" event
   if (leaveTimer !== null) {
     clearTimeout(leaveTimer);
@@ -105,6 +114,48 @@ window.addEventListener('blur', () => {
 window.addEventListener('focus', () => {
   handleReturn();
 });
+
+function updatePictureInPicture(source, active) {
+  if (active) {
+    pictureInPictureSources.add(source);
+    handleLeave();
+    return;
+  }
+
+  pictureInPictureSources.delete(source);
+  if (pictureInPictureSources.size === 0 && !document.hidden && document.hasFocus()) {
+    handleReturn();
+  }
+}
+
+// Standard video Picture-in-Picture events do not bubble, so listen during
+// capture to observe them on Meet's video elements.
+document.addEventListener('enterpictureinpicture', (event) => {
+  updatePictureInPicture(event.target, true);
+}, true);
+
+document.addEventListener('leavepictureinpicture', (event) => {
+  updatePictureInPicture(event.target, false);
+}, true);
+
+// Meet may instead use the Document Picture-in-Picture API, which opens a
+// separate window without hiding the original meeting document.
+if (window.documentPictureInPicture) {
+  const observeDocumentPictureInPictureWindow = (pipWindow) => {
+    if (!pipWindow) return;
+
+    updatePictureInPicture(pipWindow, true);
+    pipWindow.addEventListener('pagehide', () => {
+      updatePictureInPicture(pipWindow, false);
+    }, { once: true });
+  };
+
+  window.documentPictureInPicture.addEventListener('enter', (event) => {
+    observeDocumentPictureInPictureWindow(event.window);
+  });
+
+  observeDocumentPictureInPictureWindow(window.documentPictureInPicture.window);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. Page Unload / Tab Close Detection
