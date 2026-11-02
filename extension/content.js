@@ -9,6 +9,7 @@ let away = false;
 
 // Timer ID for the 500ms delay before confirming a "left" event
 let leaveTimer = null;
+let leaveReason = null;
 
 // Picture-in-Picture keeps Meet visible while its original tab may remain active.
 // Track active PiP surfaces separately so ordinary focus events do not end the
@@ -33,12 +34,15 @@ function getMeetingCode() {
  * Sends focus events ("left" or "returned") to the background script.
  * @param {string} type - "left" | "returned"
  */
-function report(type) {
+function report(type, reason) {
   const payload = {
     type: type,
     timestamp: Date.now(),
     meetingCode: getMeetingCode()
   };
+  if (reason) {
+    payload.reason = reason;
+  }
 
   // Console log for testing purposes (this can be removed later)
   console.log('[Meet Focus Tracker] Event reported:', payload);
@@ -60,17 +64,25 @@ function report(type) {
  * Triggered when a participant shows signs of leaving Meet
  * (tab switch, new tab opened, or window blurred).
  */
-function handleLeave() {
+function handleLeave(reason) {
   // If already reported away or countdown is already in progress, do nothing
-  if (away || leaveTimer !== null) {
+  if (away) {
+    return;
+  }
+  if (leaveTimer !== null) {
+    if (reason === 'visibility' || reason === 'picture-in-picture') {
+      leaveReason = reason;
+    }
     return;
   }
 
   // Wait 500 ms before reporting "left" (ignores quick blips like notifications)
+  leaveReason = reason;
   leaveTimer = setTimeout(() => {
     away = true;
     leaveTimer = null;
-    report('left');
+    report('left', leaveReason);
+    leaveReason = null;
   }, 500);
 }
 
@@ -87,6 +99,7 @@ function handleReturn() {
   if (leaveTimer !== null) {
     clearTimeout(leaveTimer);
     leaveTimer = null;
+    leaveReason = null;
   }
 
   // If participant had previously been reported as away, report "returned"
@@ -99,7 +112,7 @@ function handleReturn() {
 // 1. Detect tab switching or opening a new tab
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    handleLeave();
+    handleLeave('visibility');
   } else {
     handleReturn();
   }
@@ -107,7 +120,7 @@ document.addEventListener('visibilitychange', () => {
 
 // 2. Detect alt-tabbing or clicking outside the browser window
 window.addEventListener('blur', () => {
-  handleLeave();
+  handleLeave('blur');
 });
 
 // 3. Detect returning focus back to the Google Meet window
@@ -118,7 +131,7 @@ window.addEventListener('focus', () => {
 function updatePictureInPicture(source, active) {
   if (active) {
     pictureInPictureSources.add(source);
-    handleLeave();
+    handleLeave('picture-in-picture');
     return;
   }
 

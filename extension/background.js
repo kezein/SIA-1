@@ -68,8 +68,13 @@ async function handleFocusEvent(message) {
         return;
     }
 
-    // 3. Ignore "left" event if user is just viewing the extension popup (or closed it < 1.5s ago)
-    if (message.type === 'left' && (isPopupOpen || (Date.now() - lastPopupCloseTime < 1500))) {
+    // Ignore focus blur caused by opening the extension popup, but do not
+    // discard real tab switches or Picture-in-Picture events while it is open.
+    if (
+        message.type === 'left' &&
+        message.reason === 'blur' &&
+        (isPopupOpen || (Date.now() - lastPopupCloseTime < 1500))
+    ) {
         console.log('[Meet Focus Tracker] Event ignored: User is viewing extension popup.');
         return;
     }
