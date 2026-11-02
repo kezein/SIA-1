@@ -345,50 +345,6 @@ header {
   }
 }
 
-/* Reset Controls */
-#reset-btn {
-  background: transparent !important;
-  border: 1px solid rgba(244, 63, 94, 0.4) !important;
-  color: #f43f5e !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-  padding: 0.45rem 1rem !important;
-  transition: all 0.15s ease !important;
-}
-
-#reset-btn:hover {
-  background: rgba(244, 63, 94, 0.15) !important;
-  border-color: #f43f5e !important;
-  color: #fda4af !important;
-  transform: translateY(-1px);
-}
-
-#reset-confirm-view {
-  background: var(--bg-secondary) !important;
-  border: 1px solid rgba(244, 63, 94, 0.4) !important;
-  border-radius: var(--radius-md) !important;
-  padding: 0.85rem !important;
-}
-
-#reset-confirm-view .text-danger {
-  color: #f43f5e !important;
-}
-
-#reset-confirm-btn {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
-  color: #ffffff !important;
-  border-radius: 8px !important;
-  font-weight: 700 !important;
-  padding: 0.45rem 1rem !important;
-  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.35) !important;
-}
-
-#reset-confirm-btn:hover {
-  background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%) !important;
-  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.45) !important;
-}
-
 /* Divider lines inside cards */
 .border-top {
   border-top: 1px solid var(--border-subtle) !important;

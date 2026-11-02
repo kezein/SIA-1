@@ -45,13 +45,6 @@ const statsContent = document.getElementById('stats-content');
 const switchesDisplay = document.getElementById('switches-count');
 const totalAwayDisplay = document.getElementById('total-away');
 
-// Reset action elements
-const resetInitialView = document.getElementById('reset-initial-view');
-const resetConfirmView = document.getElementById('reset-confirm-view');
-const resetBtn = document.getElementById('reset-btn');
-const resetCancelBtn = document.getElementById('reset-cancel-btn');
-const resetConfirmBtn = document.getElementById('reset-confirm-btn');
-
 // State tracking
 let currentSavedName = '';
 let currentSavedCode = '';
@@ -274,50 +267,6 @@ function handleCancelDetails() {
 }
 
 /**
- * Opens the Reset Confirmation view.
- */
-function handleOpenResetConfirm() {
-  resetInitialView.classList.add('hidden');
-  resetConfirmView.classList.remove('hidden');
-}
-
-/**
- * Cancels the Reset action and returns to the initial view.
- */
-function handleCancelReset() {
-  resetConfirmView.classList.add('hidden');
-  resetInitialView.classList.remove('hidden');
-}
-
-/**
- * Confirms resetting stats to 0.
- */
-async function handleConfirmReset() {
-  // Reset switches and away time only; keeps participant and meetingCode safe
-  await chrome.storage.local.set({
-    switches: 0,
-    totalAway: 0,
-    lastLeaveTime: null
-  });
-
-  updateSwitchesDisplay(0);
-  updateTotalAwayDisplay(0);
-
-  // Return to initial button view with brief success feedback
-  resetConfirmView.classList.add('hidden');
-  resetInitialView.classList.remove('hidden');
-
-  const originalText = resetBtn.textContent;
-  resetBtn.textContent = '✓ Stats Reset to 0!';
-  resetBtn.disabled = true;
-
-  setTimeout(() => {
-    resetBtn.textContent = originalText;
-    resetBtn.disabled = false;
-  }, 1400);
-}
-
-/**
  * Initializes popup values and layout from chrome.storage.local.
  */
 async function initializePopup() {
@@ -394,11 +343,6 @@ if (openConsentBtn) {
 saveDetailsBtn.addEventListener('click', handleSaveDetails);
 cancelDetailsBtn.addEventListener('click', handleCancelDetails);
 editDetailsBtn.addEventListener('click', handleEditDetails);
-
-// Reset Focus Stats actions (Cancel & Confirm flow)
-resetBtn.addEventListener('click', handleOpenResetConfirm);
-resetCancelBtn.addEventListener('click', handleCancelReset);
-resetConfirmBtn.addEventListener('click', handleConfirmReset);
 
 /**
  * Listen for changes in chrome.storage.local and update the popup live.
