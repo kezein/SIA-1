@@ -21,7 +21,8 @@ A Chrome extension and web dashboard that detects when a participant leaves a Go
 ---
 
 ## Features
-- Detects tab switches, new tabs, alt-tab, and Google Meet Picture-in-Picture pop-outs
+- Detects tab switches (including brief switches), new tabs, minimized browser windows, alt-tab, and Google Meet Picture-in-Picture pop-outs
+- Counts a Meet tab closing as leaving the meeting
 - Counts the number of times a participant left Meet
 - Measures total time away
 - Consent screen shown before tracking starts
@@ -30,7 +31,7 @@ A Chrome extension and web dashboard that detects when a participant leaves a Go
 
 ## How It Works
 
-1. A **content script** runs on `meet.google.com` and listens for `visibilitychange`, `blur`, and `focus` events, as well as Picture-in-Picture entry and exit.
+1. A **content script** runs on `meet.google.com` and listens for `visibilitychange`, `blur`, and `focus` events, as well as Picture-in-Picture entry/exit and page closing.
 2. When the participant leaves or returns, it sends an event to the **background script**.
 3. The background script counts switches, adds up time away, and saves the data.
 4. Events are sent to the **database**, tagged with the participant name and meeting code.
@@ -138,6 +139,7 @@ Do not change field names without agreement from the whole team.
 ## Known Limitations
 - Meet's own screen-share picker, notifications, or clicking DevTools may trigger false "left" events.
 - Entering Google Meet Picture-in-Picture is counted as leaving the main Meet view; returning is recorded when the pop-out closes.
+- Tab closing is counted through the extension's page lifecycle notification, with a browser tab-removal event as a fallback. Abrupt browser/OS termination may prevent either event from running.
 - It cannot tell whether leaving Meet was for a legitimate reason.
 - It cannot detect activity on a second device.
 - Everyone being tracked must install the extension.

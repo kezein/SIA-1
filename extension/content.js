@@ -6,8 +6,9 @@
 
 // Track whether the participant is currently marked as away
 let away = false;
+let awayReason = null;
 
-// Timer ID for the 500ms delay before confirming a "left" event
+// Blur-only events use a short delay to avoid counting brief focus interruptions.
 let leaveTimer = null;
 let leaveReason = null;
 
@@ -65,14 +66,32 @@ function report(type, reason) {
  * (tab switch, new tab opened, or window blurred).
  */
 function handleLeave(reason) {
-  // If already reported away or countdown is already in progress, do nothing
+  // Visibility and Picture-in-Picture transitions are definitive. Count them
+  // immediately so even a quick tab switch is not lost to the blur debounce.
   if (away) {
+    if (
+      (reason === 'visibility' || reason === 'picture-in-picture') &&
+      awayReason === 'blur'
+    ) {
+      awayReason = reason;
+      report('left', reason);
+    }
     return;
   }
-  if (leaveTimer !== null) {
-    if (reason === 'visibility' || reason === 'picture-in-picture') {
-      leaveReason = reason;
+
+  if (reason === 'visibility' || reason === 'picture-in-picture') {
+    if (leaveTimer !== null) {
+      clearTimeout(leaveTimer);
+      leaveTimer = null;
     }
+    leaveReason = null;
+    away = true;
+    awayReason = reason;
+    report('left', reason);
+    return;
+  }
+
+  if (leaveTimer !== null) {
     return;
   }
 
@@ -80,6 +99,7 @@ function handleLeave(reason) {
   leaveReason = reason;
   leaveTimer = setTimeout(() => {
     away = true;
+    awayReason = leaveReason;
     leaveTimer = null;
     report('left', leaveReason);
     leaveReason = null;
@@ -105,6 +125,7 @@ function handleReturn() {
   // If participant had previously been reported as away, report "returned"
   if (away) {
     away = false;
+    awayReason = null;
     report('returned');
   }
 }
@@ -170,82 +191,33 @@ if (window.documentPictureInPicture) {
   observeDocumentPictureInPictureWindow(window.documentPictureInPicture.window);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 4. Page Unload / Tab Close Detection
-//    When a student closes the tab or navigates away entirely, the browser
-//    calls beforeunload synchronously. We cannot use async APIs here.
-//
-//    Strategy:
-//    A. navigator.sendBeacon — fire-and-forget HTTP POST queued by the browser,
-//       guaranteed to outlive the page context. Used to write directly to
-//       Supabase REST so the event is never lost even if the SW is killed.
-//    B. chrome.runtime.sendMessage — best-effort; may succeed if the SW is
-//       still alive when the tab closes. Background clears the stale away state.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Reads Supabase credentials from the global SUPABASE_CONFIG injected by config.js.
- * Returns null if not configured.
- */
-function getBeaconConfig() {
-  try {
-    const cfg = window.SUPABASE_CONFIG || {};
-    const url = (cfg.url || '').trim().replace(/\/+$/, '');
-    const key = (cfg.anonKey || '').trim();
-    if (!url || !key || url.includes('YOUR_PROJECT_ID') || key.includes('YOUR_SUPABASE_ANON_KEY')) {
-      return null;
-    }
-    return { url, key };
-  } catch (e) {
-    return null;
-  }
-}
-
-window.addEventListener('beforeunload', () => {
+// A close/navigation notification is best-effort; background.js also listens
+// for chrome.tabs.onRemoved so a tab close is counted if this page callback is
+// skipped. The background deduplicates both paths by consuming the tracked tab.
+function reportSessionEnded() {
   // Cancel any pending 500ms debounce timer — not needed during unload
   if (leaveTimer !== null) {
     clearTimeout(leaveTimer);
     leaveTimer = null;
+    leaveReason = null;
   }
 
   const meetingCode = getMeetingCode();
   if (!meetingCode) return; // Only fire on actual meeting pages
 
-  const now = Date.now();
-
-  // --- Strategy A: navigator.sendBeacon → Supabase REST (most reliable) ---
-  const cfg = getBeaconConfig();
-  if (cfg && typeof navigator.sendBeacon === 'function') {
-    const endpoint = `${cfg.url}/rest/v1/focus_events`;
-    const payload = JSON.stringify({
-      meetingCode: meetingCode,
-      type: 'left',
-      timestamp: now,
-      // Beacon cannot read participant name from storage synchronously.
-      // Use a sentinel value that background.js / data.js can replace with
-      // the stored name when it processes the session_ended message below.
-      participant: '__beacon_unload__'
-    });
-    const blob = new Blob([payload], { type: 'application/json' });
-    // sendBeacon returns false if the queue is full — we swallow it silently
-    navigator.sendBeacon(endpoint, blob);
-    console.log('[Meet Focus Tracker] sendBeacon fired on unload for:', meetingCode);
-  }
-
-  // --- Strategy B: chrome.runtime.sendMessage (best-effort, may not complete) ---
-  // We send a distinct "session_ended" type so background.js can clear
-  // lastLeaveTime without double-counting the switch.
   try {
     const msg = chrome.runtime.sendMessage({
       type: 'session_ended',
-      timestamp: now,
+      timestamp: Date.now(),
       meetingCode: meetingCode
     });
     if (msg && typeof msg.catch === 'function') msg.catch(() => {});
   } catch (e) {
-    // Expected to fail when the SW is already torn down — silently ignore
+    console.warn('[Meet Focus Tracker] Failed to report session end:', e);
   }
-});
+}
+
+window.addEventListener('pagehide', reportSessionEnded);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. SPA Navigation Detection

@@ -20,6 +20,7 @@ importScripts('config.js', 'supabaseClient.js');
  * A capped event is still recorded — it is NOT silently dropped.
  */
 const MAX_AWAY_DURATION_MS = 3 * 60 * 60 * 1000; // 3 hours in ms
+const MAX_CLOSED_MEET_TABS = 100;
 
 /**
  * Sends the formatted event to the backend database.
@@ -35,6 +36,113 @@ async function sendToBackend(event) {
 // Track whether extension popup is currently open to avoid false "left" events
 let isPopupOpen = false;
 let lastPopupCloseTime = 0;
+let backgroundEventQueue = Promise.resolve();
+
+function serializeBackgroundEvent(operation) {
+    const result = backgroundEventQueue.then(operation);
+    backgroundEventQueue = result.catch((error) => {
+        console.error('[Meet Focus Tracker] Background event failed:', error);
+    });
+    return result;
+}
+
+async function registerMeetTab(tabId, meetingCode) {
+    if (!Number.isInteger(tabId) || !meetingCode) {
+        return;
+    }
+
+    const data = await chrome.storage.local.get(['trackedMeetTabs', 'closedMeetTabs', 'meetingCode']);
+    const trackedMeetTabs = data.trackedMeetTabs && typeof data.trackedMeetTabs === 'object'
+        ? data.trackedMeetTabs
+        : {};
+    const closedMeetTabs = data.closedMeetTabs && typeof data.closedMeetTabs === 'object'
+        ? data.closedMeetTabs
+        : {};
+    const tabKey = String(tabId);
+    trackedMeetTabs[tabKey] = meetingCode;
+    delete closedMeetTabs[tabKey];
+    const updates = { trackedMeetTabs: trackedMeetTabs };
+    updates.closedMeetTabs = closedMeetTabs;
+    if (!data.meetingCode) {
+        updates.meetingCode = meetingCode;
+    }
+    await chrome.storage.local.set(updates);
+}
+
+async function closeTrackedMeetTab(tabId) {
+    if (!Number.isInteger(tabId)) {
+        return;
+    }
+
+    const data = await chrome.storage.local.get([
+        'trackedMeetTabs',
+        'closedMeetTabs',
+        'consentGiven',
+        'participant',
+        'meetingCode',
+        'switches',
+        'lastLeaveTime'
+    ]);
+    const trackedMeetTabs = data.trackedMeetTabs && typeof data.trackedMeetTabs === 'object'
+        ? data.trackedMeetTabs
+        : {};
+    const closedMeetTabs = data.closedMeetTabs && typeof data.closedMeetTabs === 'object'
+        ? data.closedMeetTabs
+        : {};
+    const tabKey = String(tabId);
+    const meetingCode = trackedMeetTabs[tabKey];
+
+    if (!meetingCode) {
+        return;
+    }
+
+    delete trackedMeetTabs[tabKey];
+    closedMeetTabs[tabKey] = Date.now();
+    const closedTabIds = Object.keys(closedMeetTabs).sort(
+        (a, b) => closedMeetTabs[a] - closedMeetTabs[b]
+    );
+    while (closedTabIds.length > MAX_CLOSED_MEET_TABS) {
+        delete closedMeetTabs[closedTabIds.shift()];
+    }
+    await chrome.storage.local.set({
+        trackedMeetTabs: trackedMeetTabs,
+        closedMeetTabs: closedMeetTabs
+    });
+
+    if (data.consentGiven !== true) {
+        return;
+    }
+
+    const updates = { lastLeaveTime: null };
+    let closeEvent = null;
+
+    // A prior visibility/blur event already counted this departure. Otherwise
+    // count the close itself as one switch.
+    if (typeof data.lastLeaveTime !== 'number') {
+        const timestamp = Date.now();
+        const switches = (typeof data.switches === 'number' ? data.switches : 0) + 1;
+        updates.switches = switches;
+        if (!data.meetingCode) {
+            updates.meetingCode = meetingCode;
+        }
+        closeEvent = {
+            participant: data.participant || '',
+            meetingCode: meetingCode,
+            type: 'left',
+            timestamp: timestamp
+        };
+    }
+
+    await chrome.storage.local.set(updates);
+    if (closeEvent) {
+        console.log('[Meet Focus Tracker] Meet tab closed; counting departure:', closeEvent);
+        try {
+            await sendToBackend(closeEvent);
+        } catch (error) {
+            console.error('[Meet Focus Tracker] Failed to send tab-close event:', error);
+        }
+    }
+}
 
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name === 'popup') {
@@ -46,12 +154,19 @@ chrome.runtime.onConnect.addListener((port) => {
     }
 });
 
+chrome.tabs.onRemoved.addListener((tabId) => {
+    serializeBackgroundEvent(() => closeTrackedMeetTab(tabId))
+        .catch((error) => {
+            console.error('[Meet Focus Tracker] Failed to process closed tab:', error);
+        });
+});
+
 /**
  * Handles incoming focus events ("left" or "returned") from content.js.
  * All state is read from and written to chrome.storage.local.
  * @param {Object} message - Event message { type, timestamp, meetingCode }
  */
-async function handleFocusEvent(message) {
+async function handleFocusEvent(message, tabId) {
     // 1. Read current state and settings from chrome.storage.local
     const data = await chrome.storage.local.get([
         'consentGiven',
@@ -59,12 +174,21 @@ async function handleFocusEvent(message) {
         'meetingCode',
         'switches',
         'totalAway',
-        'lastLeaveTime'
+        'lastLeaveTime',
+        'closedMeetTabs'
     ]);
 
     // 2. Gatekeeper: Do not count any events unless consent has been granted
     if (data.consentGiven !== true) {
         console.log('[Meet Focus Tracker] Event ignored: Consent has not been granted yet.');
+        return;
+    }
+
+    const closedMeetTabs = data.closedMeetTabs && typeof data.closedMeetTabs === 'object'
+        ? data.closedMeetTabs
+        : {};
+    if (Number.isInteger(tabId) && closedMeetTabs[String(tabId)]) {
+        console.log('[Meet Focus Tracker] Event ignored from a closed Meet tab.');
         return;
     }
 
@@ -76,6 +200,13 @@ async function handleFocusEvent(message) {
         (isPopupOpen || (Date.now() - lastPopupCloseTime < 1500))
     ) {
         console.log('[Meet Focus Tracker] Event ignored: User is viewing extension popup.');
+        return;
+    }
+
+    // A definitive visibility event may upgrade a blur event that was ignored
+    // while the extension popup was open. Do not count duplicate leave signals.
+    if (message.type === 'left' && typeof data.lastLeaveTime === 'number') {
+        console.log('[Meet Focus Tracker] Duplicate "left" event ignored.');
         return;
     }
 
@@ -182,7 +313,7 @@ async function handleFocusEvent(message) {
 // 8. Listen for runtime messages from content.js
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message && (message.type === 'left' || message.type === 'returned')) {
-        handleFocusEvent(message)
+        serializeBackgroundEvent(() => handleFocusEvent(message, sender.tab && sender.tab.id))
             .then(() => sendResponse({ status: 'ok' }))
             .catch((err) => {
                 console.error('[Meet Focus Tracker] Error handling event:', err);
@@ -194,32 +325,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     // SPA navigation: content.js detected a new meeting code in the URL.
-    // Persist it so popup.js can read it without a page reload.
+    // Persist it for the popup and associate the tab so closure can be counted.
     if (message && message.type === 'meeting_detected' && message.meetingCode) {
-        chrome.storage.local.get(['meetingCode'], (data) => {
-            // Only update if no meeting code is already saved (don't overwrite
-            // an active session's code if the user navigated within the same call)
-            if (!data.meetingCode) {
-                chrome.storage.local.set({ meetingCode: message.meetingCode }, () => {
-                    console.log(
-                        '[Meet Focus Tracker] Meeting code saved from SPA navigation:',
-                        message.meetingCode
-                    );
-                });
-            }
-            sendResponse({ status: 'ok' });
-        });
-        return true; // Keep channel open for async chrome.storage callback
+        serializeBackgroundEvent(() => registerMeetTab(sender.tab && sender.tab.id, message.meetingCode))
+            .then(() => sendResponse({ status: 'ok' }))
+            .catch((error) => {
+                console.error('[Meet Focus Tracker] Failed to register Meet tab:', error);
+                sendResponse({ status: 'error', error: error.message });
+            });
+        return true;
     }
 
-    // Tab close / unload: content.js fired a session_ended event via sendMessage.
-    // Clear lastLeaveTime so the student does not appear permanently "Away"
-    // on the teacher's dashboard after closing the Meet tab.
+    // pagehide is the fast path; chrome.tabs.onRemoved is the fallback. Both
+    // consume the same tracked-tab entry, preventing a duplicate switch count.
     if (message && message.type === 'session_ended') {
-        chrome.storage.local.set({ lastLeaveTime: null }, () => {
-            console.log('[Meet Focus Tracker] Session ended — lastLeaveTime cleared for clean state.');
-        });
-        sendResponse({ status: 'ok' });
+        serializeBackgroundEvent(() => closeTrackedMeetTab(sender.tab && sender.tab.id))
+            .then(() => sendResponse({ status: 'ok' }))
+            .catch((error) => {
+                console.error('[Meet Focus Tracker] Failed to process session end:', error);
+                sendResponse({ status: 'error', error: error.message });
+            });
         return true;
     }
 });
