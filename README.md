@@ -1,114 +1,98 @@
-# Meet Focus Tracker
+<div align="center">
+  <img src="img/icon.png" alt="WingWatch logo" width="160">
+  <h1>WingWatch</h1>
+  <p>A privacy-conscious Google Meet focus tracker for participants and teachers.</p>
 
-A Chrome extension and web dashboard that detects when a participant leaves a Google Meet tab (switching tabs, opening a new tab, or alt-tabbing to another app) and reports how many times it happened and for how long.
-
-> **Privacy note:** The extension only detects *that* the participant left Meet and *for how long*. It does **not** record which tabs, websites, or apps were opened.
-
----
-
-## Table of Contents
-- [Features](#features)
-- [How It Works](#how-it-works)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Event Format](#event-format)
-- [Privacy and Consent](#privacy-and-consent)
-- [Known Limitations](#known-limitations)
-- [Team](#team)
+  <img src="https://img.shields.io/badge/Platform-Chrome-4285F4?logo=googlechrome&logoColor=white" alt="Platform: Chrome">
+  <img src="https://img.shields.io/badge/Extension-Manifest%20V3-34A853" alt="Chrome extension: Manifest V3">
+  <img src="https://img.shields.io/badge/Language-JavaScript-F7DF1E?logo=javascript&logoColor=black" alt="Language: JavaScript">
+  <img src="https://img.shields.io/badge/Backend-Supabase-3FCF8E?logo=supabase&logoColor=white" alt="Backend: Supabase">
+</div>
 
 ---
+
+WingWatch is a Chrome extension and teacher dashboard for recording when a participant leaves a Google Meet tab and how long they are away. The participant installs the extension; the teacher uses the dashboard to review results by meeting code.
+
+> **Privacy by design:** WingWatch records focus events and away durations. It does not collect the names of other tabs, browsing activity, or the apps a participant uses.
 
 ## Features
-- Detects tab switches (including brief switches), new tabs, minimized browser windows, alt-tab, and Google Meet Picture-in-Picture pop-outs
-- Counts a Meet tab closing as leaving the meeting
-- Counts the number of times a participant left Meet
-- Measures total time away
-- Consent screen shown before tracking starts
-- Popup showing the participant's own results
-- Dashboard where the teacher views each participant's results by meeting code
 
-## How It Works
+- Detects when a Google Meet tab becomes hidden or loses focus, including tab switches and minimized browser windows.
+- Records leave/return events and calculates time away.
+- Requires participants to provide consent before tracking.
+- Lets participants view their own results in the extension popup.
+- Provides a teacher dashboard with sample data by default and optional Supabase integration.
+- Supports Google Meet Picture-in-Picture and treats closing the Meet tab as leaving.
 
-1. A **content script** runs on `meet.google.com` and listens for `visibilitychange`, `blur`, and `focus` events, as well as Picture-in-Picture entry/exit and page closing.
-2. When the participant leaves or returns, it sends an event to the **background script**.
-3. The background script counts switches, adds up time away, and saves the data.
-4. Events are sent to the **database**, tagged with the participant name and meeting code.
-5. The teacher opens the **dashboard**, enters the meeting code, and sees the results.
+## How it works
 
-```
-Student's browser (extension) --> Database --> Dashboard --> Teacher
+1. The extension's content script listens for visibility and focus changes on `meet.google.com`.
+2. The background service worker updates local counts and durations and sends focus events to Supabase when configured.
+3. The dashboard displays results for a meeting code, using sample data in its default configuration or Supabase when enabled.
+
+```text
+Participant's Chrome extension --> Supabase (optional) --> Teacher dashboard
 ```
 
-The extension is installed on **each participant's** browser. The teacher does not need it.
+## Technology
 
-## Tech Stack
-
-| Part | Technology |
+| Component | Technology |
 |---|---|
-| Extension | Chrome Extension (Manifest V3), JavaScript |
-| Backend / Database | [Firebase / Supabase: fill in] |
-| Dashboard | [HTML, CSS, JavaScript / React: fill in] |
+| Browser extension | Chrome Extension Manifest V3, JavaScript |
+| Backend | Supabase (PostgreSQL, REST API, and optional authentication) |
+| Dashboard | HTML, CSS, and JavaScript |
 
-## Project Structure
+## Repository layout
 
-```
-meet-focus-tracker/
-├── extension/
-│   ├── manifest.json      # Extension settings and permissions
-│   ├── content.js         # Detects leaving/returning on Google Meet
-│   ├── background.js      # Counts switches and time away
-│   ├── popup.html         # Popup window UI
-│   ├── popup.js           # Popup logic (name, meeting code, results)
-│   └── consent.html       # Consent screen shown on first use
-├── dashboard/             # Teacher dashboard (web app)
-├── docs/
-│   └── EVENT_FORMAT.md    # Shared event format
+```text
+.
+├── backend/
+│   └── schema.sql             # Supabase tables, policies, and views
+├── dashboard/                 # Teacher dashboard and sample events
+├── docs/                      # Database, privacy, event, and QA documentation
+├── extension/                 # Chrome extension
+├── img/                       # Project logo and mascot
+├── scripts/
+│   └── test-supabase.js        # Optional Supabase connectivity/RLS checks
 └── README.md
 ```
 
-## Installation
+## Getting started
 
-### Extension (for participants)
-1. Download or clone this repository.
-2. Open Chrome and go to `chrome://extensions`.
-3. Turn on **Developer mode** (top right).
-4. Click **Load unpacked** and select the `extension` folder.
-5. The extension icon should appear in the Chrome toolbar.
+### Install the extension
 
-### Dashboard (for the teacher)
-1. Go to the `dashboard` folder.
-2. Add your database settings (see `.env.example` or the config file).
-3. Run the dashboard:
+1. Clone or download this repository.
+2. In Chrome, open `chrome://extensions` and enable **Developer mode**.
+3. Select **Load unpacked** and choose the repository's `extension` folder.
+4. Open Google Meet, click the WingWatch extension, and follow the consent and setup prompts.
+
+The extension's Supabase integration is optional. To configure it, copy `extension/config.example.js` to `extension/config.js` and enter your Supabase project URL and **anon/public** key. Never put a Supabase `service_role` key in the extension or dashboard.
+
+### Run the dashboard locally
+
+The dashboard is a static web app; it does not use `npm install` or `npm start`.
+
+1. (Optional) Copy `dashboard/config.example.js` to `dashboard/config.js`. The example defaults to mock data. To use Supabase, set `BACKEND_PROVIDER` to `"supabase"` and enter your project URL and anon/public key.
+2. From the repository root, start a local web server:
+
    ```bash
-   # replace with your actual commands
-   npm install
-   npm start
+   python -m http.server 8000
    ```
 
-### Backend setup
-1. Create a project in [Firebase / Supabase].
-2. Create the events table/collection using the fields in [Event Format](#event-format).
-3. Set the security rules so participants can only add events and only the teacher can read them.
-4. Add your project keys to the extension and dashboard config files.
+3. Open <http://localhost:8000/dashboard/> in your browser.
 
-## Usage
+### Set up Supabase (optional)
 
-**Participants:**
-1. Click the extension icon.
-2. Read and accept the consent screen.
-3. Enter your name and the Google Meet code.
-4. Join the meeting. Tracking runs automatically while you are on the Meet tab.
+1. Create a Supabase project.
+2. Run [`backend/schema.sql`](backend/schema.sql) in the Supabase SQL Editor.
+3. Configure the extension and dashboard as described above.
+4. Configure Supabase authentication and redirect URLs for the dashboard's teacher sign-in flow. Keep row-level security enabled; do not enable anonymous reads on real participant data.
 
-**Teacher:**
-1. Open the dashboard and log in.
-2. Enter the meeting code.
-3. View each participant's number of switches and total time away.
+See the [database setup guide](docs/DATABASE.md) for schema details and the optional verification script.
 
-## Event Format
+## Event format
 
-Every part of the system uses the same JSON format for events:
+Events use a shared JSON schema across the extension, backend, and dashboard:
 
 ```json
 {
@@ -120,40 +104,33 @@ Every part of the system uses the same JSON format for events:
 }
 ```
 
-| Field | Description |
-|---|---|
-| `participant` | Name entered by the participant |
-| `meetingCode` | The Google Meet code |
-| `type` | `"left"` or `"returned"` |
-| `timestamp` | When it happened, in milliseconds (`Date.now()`) |
-| `duration` | Time away in milliseconds (only on `"returned"` events) |
+`timestamp` and `duration` are milliseconds; `duration` is present on a returned event. See the [complete event specification](docs/EVENT_FORMAT.md) before changing fields.
 
-Do not change field names without agreement from the whole team.
+## Privacy and limitations
 
-## Privacy and Consent
-- Participants must accept a consent screen before tracking starts.
-- Only these are recorded: that the participant left Meet, when, and for how long.
-- Tab titles, URLs, and other apps are **never** read or stored.
-- The extension only runs on `meet.google.com`.
+- Tracking starts only after participant consent.
+- WingWatch records the participant name, meeting code, event type, timestamp, and away duration. It does not record tab titles, URLs, other apps, screen content, audio, or video.
+- Tracking is limited to Google Meet pages; results may be inaccurate in cases such as browser dialogs or other brief focus changes.
+- WingWatch cannot determine why someone left Meet, track activity on another device, or guarantee an event is saved if the browser or operating system shuts down unexpectedly.
 
-## Known Limitations
-- Meet's own screen-share picker, notifications, or clicking DevTools may trigger false "left" events.
-- Entering Google Meet Picture-in-Picture is counted as leaving the main Meet view; returning is recorded when the pop-out closes.
-- Tab closing is counted through the extension's page lifecycle notification, with a browser tab-removal event as a fallback. Abrupt browser/OS termination may prevent either event from running.
-- It cannot tell whether leaving Meet was for a legitimate reason.
-- It cannot detect activity on a second device.
-- Everyone being tracked must install the extension.
+Read the [privacy statement](docs/PRIVACY.md) for more information.
+
+## Documentation
+
+- [Database and Supabase setup](docs/DATABASE.md)
+- [Event format](docs/EVENT_FORMAT.md)
+- [Privacy statement](docs/PRIVACY.md)
+- [QA test cases](docs/TEST_CASES.md)
+- [Paper outline](docs/PAPER_OUTLINE.md)
 
 ## Team
 
 | Role | Member |
 |---|---|
-| 1. Project lead + Content script | Kezia Villegas |
-| 2. Background script + Popup | Francis John Tamayo |
-| 3. Backend + Integration | Aaron Celindro |
-| 4. Dashboard | Francis Conguis |
-| 5. UI/UX, QA, Documentation | Janeah Gasis|
+| Project lead and content script | Kezia Villegas |
+| Background script and popup | Francis John Tamayo |
+| Backend and integration | Aaron Celindro |
+| Dashboard | Francis Conguis |
+| UI/UX, QA, and documentation | Janeah Gasis |
 
-**Course / Subject:** [fill in]
-**School:** [fill in]
-**Date:** October 2026
+**Project date:** October 2026
