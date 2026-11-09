@@ -15,6 +15,10 @@ WingWatch is a Chrome extension and teacher dashboard for recording when a parti
 
 > **Privacy by design:** WingWatch records focus events and away durations. It does not collect the names of other tabs, browsing activity, or the apps a participant uses.
 
+## Preview
+
+![Screen recording showing WingWatch in use](img/Recording.gif)
+
 ## Features
 
 - Detects when a Google Meet tab becomes hidden or loses focus, including tab switches and minimized browser windows.
